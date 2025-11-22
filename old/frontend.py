@@ -2,7 +2,7 @@ import customtkinter as ctk
 from typing import Literal, Union, Tuple
 def create_root_window():
     root = ctk.CTk()
-    root.title("BSK Electronic Signature by Krzysztof Madajczak 188674 and Piotr Wesołowski")
+    root.title("Kryptografia Postkwantowa - Krzysztof Madajczak Jakub Mlocek, Julia Sadecka, Marcel Trzaczawka")
     root.geometry("1000x600")
     root.grid_rowconfigure(2, weight=1)
     return root
