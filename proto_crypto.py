@@ -22,7 +22,7 @@ def proto_generate_keypair(algorithm: str):
 
     if algorithm == "Falcon":
         print(f"Using {algorithm} algorithm")
-        with oqs.Signature("Falcon-1024") as signer, oqs.Signature("ML-DSA-44") as verifier:
+        with oqs.Signature("Falcon-1024") as signer:
             pub = signer.generate_keypair()
             priv = signer.export_secret_key()    
     else:
@@ -53,11 +53,23 @@ def proto_sign(data: str, private_key: str):
     """
     Podpisuje dane.
     """
-    return f"SIGNATURE_OF({data})_BY_{private_key[:10]}..."
+    if private_key[:10] == "Falcon": # THIS will not work
+        print(f"Using Falcon algorithm")
+        with oqs.Signature("Falcon-1024") as signer:
+            signature = signer.sign(data)
+            return signature
+    else:
+        return f"SIGNATURE_OF({data})_BY_{private_key[:10]}..."
 
 def proto_verify(data: str, signature: str, public_key: str):
     """
     Weryfikuje podpis.
     """
-    # Zwraca True/False losowo (dla symulacji)
-    return random.choice([True, False])
+    if signature[:10] == "Falcon": # THIS will not work
+        print(f"Using Falcon algorithm")
+        with oqs.Signature("Falcon-1024") as signer:
+            is_valid = signer.verify(data, signature, public_key)
+            return is_valid
+
+    else:
+        return random.choice([True, False])
