@@ -8,28 +8,35 @@ def proto_generate_keypair(algorithm: str):
     Generuje parę kluczy dla wybranego algorytmu.
     Zwraca tuple (public_key, private_key) jako stringi.
     """
+    
 
     if algorithm == "Dilithium":
         print(f"Using {algorithm} algorithm")
         with oqs.Signature("ML-DSA-44") as signer, oqs.Signature("ML-DSA-44") as verifier:
             pub = signer.generate_keypair()
             priv = signer.export_secret_key()
+            alg_short_name = "Dilit"
+
 
     if algorithm == "Falcon":
         print(f"Using {algorithm} algorithm")
         with oqs.Signature("Falcon-1024") as signer:
             pub = signer.generate_keypair()
             priv = signer.export_secret_key() 
+            alg_short_name = "Falco"
+
 
     if algorithm == "Cross":
         print(f"Using {algorithm} algorithm")
         with oqs.Signature("cross-rsdp-256-balanced") as signer:
             pub = signer.generate_keypair()
             priv = signer.export_secret_key() 
+            alg_short_name = "Cross"
+
     else:
         print(f"Algorithm <{algorithm}> does not exist")
 
-    return pub, priv
+    return pub, priv, alg_short_name
 
 def proto_encrypt(data: str, public_key: str):
     """

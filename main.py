@@ -238,11 +238,19 @@ class KeysPage(ctk.CTkFrame):
             self.message_label.configure(text="PINs do not match!", text_color="#f87171")
             return
 
-        pub, priv = proto_generate_keypair(algo)
+        pub, priv, alg_short_name = proto_generate_keypair(algo)
         self.message_label.configure(
             text=f"Key pair generated!\nPublic: {pub[:16]}...\nPrivate: {priv[:16]}...",
             text_color="#22d3ee"
         )
+
+        pub_key_to_write = f"{alg_short_name} {pub}"
+        priv_key_to_write = f"{alg_short_name} {priv}"
+
+        
+
+
+        
 
 
 class SignPage(ctk.CTkFrame):
@@ -730,6 +738,3 @@ class PQApp(ctk.CTk):
 if __name__ == "__main__":
     app = PQApp()
     app.mainloop()
-
-    pub, priv = proto_generate_keypair("Kyber")
-    print(pub, priv)
