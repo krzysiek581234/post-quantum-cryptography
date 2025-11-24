@@ -1,5 +1,6 @@
 import customtkinter as ctk
 import tkinter as tk
+from tkinter import filedialog
 from PIL import Image, ImageOps, ImageDraw
 import os
 from proto_crypto import proto_generate_keypair
@@ -247,7 +248,37 @@ class KeysPage(ctk.CTkFrame):
         pub_key_to_write = f"{alg_short_name} {pub}"
         priv_key_to_write = f"{alg_short_name} {priv}"
 
-        
+        try:
+            base_file_path = tk.filedialog.asksaveasfilename(
+                filetypes=[("Pub Files", "*.pub"), ("All Files", "*.*")],
+                title="Save Key Pair (Select base filename)"
+            )
+
+            if base_file_path:
+                # 2. Strip any extension the user might have typed to get the 'root' name
+                # e.g., "C:/keys/mykey.txt" becomes "C:/keys/mykey"
+                root_path = os.path.splitext(base_file_path)[0]
+
+                # 3. Define the two separate paths with requested extensions
+                pub_path = f"{root_path}.pub"
+                priv_path = f"{root_path}.key"
+
+                # 4. Write the PUBLIC key (.pem)
+                with open(pub_path, "w") as f:
+                    f.write(pub_key_to_write)
+
+                # 5. Write the PRIVATE key (.private)
+                with open(priv_path, "w") as f:
+                    f.write(priv_key_to_write)
+
+                # 6. Update UI
+                self.message_label.configure(
+                    text=f"Success! Keys saved:\n{os.path.basename(pub_path)}\n{os.path.basename(priv_path)}",
+                    text_color="#22d3ee"
+                )
+
+        except Exception as e:
+            self.message_label.configure(text=f"Error saving files: {str(e)}", text_color="#f87171")
 
 
         
