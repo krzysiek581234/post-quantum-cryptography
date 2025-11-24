@@ -58,7 +58,7 @@ def proto_sign(algorithm: str, data: str, private_key: str):
 
     if algorithm == "Falco": 
         print(f"Using Falcon algorithm")
-        with oqs.Signature("Falcon-1024") as signer:
+        with oqs.Signature("Falcon-1024", private_key) as signer:
             signature = signer.sign(data)
             return signature
     elif algorithm == "Cross":
@@ -77,13 +77,13 @@ def proto_verify(algorithm: str, data: str, signature: str, public_key: str):
 
     if algorithm == "Falco":
         print(f"Using Falcon algorithm")
-        with oqs.Signature("Falcon-1024") as signer:
+        with oqs.Signature("Falcon-1024", public_key) as signer:
             is_valid = signer.verify(data, signature, public_key)
             return is_valid
         
     elif algorithm == "Cross": 
         print(f"Using Cross algorithm")
-        with oqs.Signature("cross-rsdp-256-balanced") as signer:
+        with oqs.Signature("cross-rsdp-256-balanced", public_key) as signer:
             is_valid = signer.verify(data, signature, public_key)
             return is_valid
 
