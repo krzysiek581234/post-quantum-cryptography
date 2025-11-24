@@ -8,8 +8,9 @@ misc.xml
 bsk
 # C extensions
 *.so
-
+liboqs*
 *.pem
+.DS_Store
 
 # Distribution / packaging
 .Python
@@ -194,3 +195,5 @@ fabric.properties
 .idea/bsk encrypting.iml
 *.iml
 *.xml
+pqc_algo.py
+requirements.txt

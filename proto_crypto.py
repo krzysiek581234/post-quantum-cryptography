@@ -19,6 +19,12 @@ def proto_generate_keypair(algorithm: str):
         with oqs.Signature("ML-DSA-44") as signer, oqs.Signature("ML-DSA-44") as verifier:
             pub = signer.generate_keypair()
             priv = signer.export_secret_key()
+
+    if algorithm == "Falcon":
+        print(f"Using {algorithm} algorithm")
+        with oqs.Signature("Falcon-1024") as signer, oqs.Signature("ML-DSA-44") as verifier:
+            pub = signer.generate_keypair()
+            priv = signer.export_secret_key()    
     else:
         print(f"Algorithm <{algorithm}> does not exist")
 
