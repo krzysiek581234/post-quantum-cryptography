@@ -24,7 +24,13 @@ def proto_generate_keypair(algorithm: str):
         print(f"Using {algorithm} algorithm")
         with oqs.Signature("Falcon-1024") as signer:
             pub = signer.generate_keypair()
-            priv = signer.export_secret_key()    
+            priv = signer.export_secret_key() 
+
+    if algorithm == "Cross":
+        print(f"Using {algorithm} algorithm")
+        with oqs.Signature("cross-rsdp-256-balanced") as signer:
+            pub = signer.generate_keypair()
+            priv = signer.export_secret_key() 
     else:
         print(f"Algorithm <{algorithm}> does not exist")
 
@@ -58,6 +64,12 @@ def proto_sign(data: str, private_key: str):
         with oqs.Signature("Falcon-1024") as signer:
             signature = signer.sign(data)
             return signature
+    elif private_key[:10] == "Cross": # THIS will not work
+        print(f"Using Cross algorithm")
+        with oqs.Signature("cross-rsdp-256-balanced") as signer:
+            signature = signer.sign(data)
+            return signature   
+
     else:
         return f"SIGNATURE_OF({data})_BY_{private_key[:10]}..."
 
@@ -68,6 +80,12 @@ def proto_verify(data: str, signature: str, public_key: str):
     if signature[:10] == "Falcon": # THIS will not work
         print(f"Using Falcon algorithm")
         with oqs.Signature("Falcon-1024") as signer:
+            is_valid = signer.verify(data, signature, public_key)
+            return is_valid
+        
+    elif signature[:10] == "Cross": # THIS will not work
+        print(f"Using Cross algorithm")
+        with oqs.Signature("cross-rsdp-256-balanced") as signer:
             is_valid = signer.verify(data, signature, public_key)
             return is_valid
 
