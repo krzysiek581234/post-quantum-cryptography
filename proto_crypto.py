@@ -63,6 +63,9 @@ def proto_sign(data: str, private_key: str):
     algorithm = private_key[:5]
     private_key = private_key[6:]
 
+    print(algorithm)
+    print(private_key)
+
     if algorithm == "Falco": 
         print(f"Using Falcon algorithm")
         with oqs.Signature("Falcon-1024", private_key) as signer:

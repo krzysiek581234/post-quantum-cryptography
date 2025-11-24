@@ -298,7 +298,7 @@ class SignPage(ctk.CTkFrame):
             
 
     def sign_file(self):
-        from proto_crypto import mock_sign  # uses mock system  :contentReference[oaicite:2]{index=2}
+        from proto_crypto import proto_sign  
 
         if not self.file_path:
             self.message.configure(text="Musisz wybrać plik!", text_color="#f87171")
@@ -315,7 +315,7 @@ class SignPage(ctk.CTkFrame):
             content = f.read()
         
 
-        signature = mock_sign(content, f"{algo}_PRIVATE_KEY")
+        signature = proto_sign(content, f"{algo}_PRIVATE_KEY")
 
         # Save signature
         basename = os.path.basename(self.file_path)
