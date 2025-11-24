@@ -245,8 +245,8 @@ class KeysPage(ctk.CTkFrame):
             text_color="#22d3ee"
         )
 
-        pub_key_to_write = f"{alg_short_name} {pub}"
-        priv_key_to_write = f"{alg_short_name} {priv}"
+        pub_key_to_write = f"{pub}"
+        priv_key_to_write = f"{priv}"
 
         try:
             base_file_path = tk.filedialog.asksaveasfilename(
@@ -350,7 +350,7 @@ class SignPage(ctk.CTkFrame):
 
         # Algorithm
         ctk.CTkLabel(panel, text="Algorithm").pack(pady=8)
-        self.algo_option = ctk.CTkOptionMenu(panel, values=["Dilithium", "Picnic", "XMSS", "SPHINCS++"])
+        self.algo_option = ctk.CTkOptionMenu(panel, values=["Kyber", "Dilithium", "Picnic", "XMSS", "SPHINCS++"])
         self.algo_option.pack()
 
         # PIN
@@ -467,9 +467,9 @@ class EncryptPage(ctk.CTkFrame):
             return
 
         content = open(self.file_path, "r", errors="ignore").read()
-        public_key = open(self.key_path, "r", errors="ignore").read()
+        private_key = open(self.key_path, "r", errors="ignore").read()
 
-        encrypted = proto_encrypt(content, public_key)
+        encrypted = proto_encrypt(content, private_key)
 
         basename = os.path.basename(self.file_path)
         name, ext = os.path.splitext(basename)
@@ -480,7 +480,7 @@ class EncryptPage(ctk.CTkFrame):
             initialfile=proposed
         )
         if save_path:
-            with open(save_path, "w") as f:
+            with open(save_path, "wb") as f:
                 f.write(encrypted)
             self.message.configure(
                 text=f"Plik zaszyfrowany pomyślnie!\nZapisano do: {os.path.basename(save_path)}",
@@ -488,7 +488,7 @@ class EncryptPage(ctk.CTkFrame):
             )
 
     def build(self):
-        ctk.CTkLabel(self, text="Encrypt File (Kyber)",
+        ctk.CTkLabel(self, text="Encrypt File",
                      font=("Segoe UI", 18, "bold")).pack(pady=10)
 
         panel = ctk.CTkFrame(self, corner_radius=12)
@@ -498,7 +498,7 @@ class EncryptPage(ctk.CTkFrame):
         self.file_label = ctk.CTkLabel(panel, text="No file selected", text_color="#94a3b8")
         self.file_label.pack()
 
-        ctk.CTkLabel(panel, text="Recipient public key").pack(pady=6)
+        ctk.CTkLabel(panel, text="Recipient private key").pack(pady=6)
         ctk.CTkButton(panel, text="Choose key", command=self.choose_key).pack()
 
         self.key_label = ctk.CTkLabel(panel, text="No key selected", text_color="#94a3b8")

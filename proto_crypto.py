@@ -1,6 +1,7 @@
 import random
 import string
-
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+import os
 import oqs
 
 def proto_generate_keypair(algorithm: str):
@@ -8,6 +9,12 @@ def proto_generate_keypair(algorithm: str):
     Generuje parę kluczy dla wybranego algorytmu.
     Zwraca tuple (public_key, private_key) jako stringi.
     """
+    if algorithm == "Kyber":
+        print(f"Using {algorithm} algorithm")
+        with oqs.KeyEncapsulation("Kyber512") as kem:
+            pub = kem.generate_keypair()
+            priv = kem.export_secret_key()
+            alg_short_name = "Kyber512"
 
 
     if algorithm == "Dilithium":
@@ -38,14 +45,30 @@ def proto_generate_keypair(algorithm: str):
 
     return pub, priv, alg_short_name
 
-def proto_encrypt(data: str, public_key: str):
+def proto_encrypt(data: str, private_key: str):
     """
     Szyfruje dane.
     """
-    algorithm = public_key[:5]
-    public_key = public_key[6:]
+    algorithm = private_key[:5]
+    private_key = private_key[6:].encode()
 
-    return f"ENCRYPTED({data})_WITH_{public_key[:10]}..."
+    if algorithm == "Kyber":
+        with oqs.KeyEncapsulation("Kyber512", private_key) as kem:
+            ciphertext_kem, shared_secret = kem.encap_secret()
+            aes_key = shared_secret[:32]
+            aesgcm = AESGCM(aes_key)
+            nonce = os.urandom(12)
+            encrypted = aesgcm.encrypt(nonce, data.encode(), None)
+
+            return {
+                "kem_ciphertex": ciphertext_kem.hex(),
+                "aes_nonce": nonce.hex(),
+                "aes_payload": encrypted.hex(),
+            }
+
+
+
+    # return f"ENCRYPTED({data})_WITH_{public_key[:10]}..."
 
 def proto_decrypt(data: str, private_key: str):
     """
