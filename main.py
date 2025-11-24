@@ -2,7 +2,7 @@ import customtkinter as ctk
 import tkinter as tk
 from PIL import Image, ImageOps, ImageDraw
 import os
-from mock_crypto import mock_generate_keypair
+from proto_crypto import proto_generate_keypair
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
@@ -238,7 +238,7 @@ class KeysPage(ctk.CTkFrame):
             self.message_label.configure(text="PINs do not match!", text_color="#f87171")
             return
 
-        pub, priv = mock_generate_keypair(algo)
+        pub, priv = proto_generate_keypair(algo)
         self.message_label.configure(
             text=f"Key pair generated!\nPublic: {pub[:16]}...\nPrivate: {priv[:16]}...",
             text_color="#22d3ee"
@@ -256,9 +256,10 @@ class SignPage(ctk.CTkFrame):
         if path:
             self.file_path = path
             self.file_label.configure(text=os.path.basename(path))
+            
 
     def sign_file(self):
-        from mock_crypto import mock_sign  # uses mock system  :contentReference[oaicite:2]{index=2}
+        from proto_crypto import mock_sign  # uses mock system  :contentReference[oaicite:2]{index=2}
 
         if not self.file_path:
             self.message.configure(text="Musisz wybrać plik!", text_color="#f87171")
@@ -273,6 +274,7 @@ class SignPage(ctk.CTkFrame):
 
         with open(self.file_path, "r", errors="ignore") as f:
             content = f.read()
+        
 
         signature = mock_sign(content, f"{algo}_PRIVATE_KEY")
 
@@ -351,7 +353,7 @@ class VerifyPage(ctk.CTkFrame):
             self.pub_label.configure(text=os.path.basename(path))
 
     def verify(self):
-        from mock_crypto import mock_verify  # mock verify  :contentReference[oaicite:3]{index=3}
+        from proto_crypto import proto_verify  # proto verify  :contentReference[oaicite:3]{index=3}
 
         if not self.file_path or not self.sig_path or not self.pub_path:
             self.message.configure(text="Musisz wybrać plik, podpis i klucz!", text_color="#f87171")
@@ -362,7 +364,7 @@ class VerifyPage(ctk.CTkFrame):
         signature = open(self.sig_path, "r", errors="ignore").read()
         public_key = open(self.pub_path, "r", errors="ignore").read()
 
-        result = mock_verify(content, signature, public_key)
+        result = proto_verify(content, signature, public_key)
 
         if result:
             self.message.configure(text="Podpis jest poprawny!", text_color="#22d3ee")
@@ -419,7 +421,7 @@ class EncryptPage(ctk.CTkFrame):
             self.key_label.configure(text=os.path.basename(path))
 
     def encrypt_file(self):
-        from mock_crypto import mock_encrypt
+        from proto_crypto import proto_encrypt
 
         if not self.file_path or not self.key_path:
             self.message.configure(text="Musisz wybrać plik i klucz!", text_color="#f87171")
@@ -428,7 +430,7 @@ class EncryptPage(ctk.CTkFrame):
         content = open(self.file_path, "r", errors="ignore").read()
         public_key = open(self.key_path, "r", errors="ignore").read()
 
-        encrypted = mock_encrypt(content, public_key)
+        encrypted = proto_encrypt(content, public_key)
 
         basename = os.path.basename(self.file_path)
         name, ext = os.path.splitext(basename)
@@ -483,7 +485,7 @@ class DecryptPage(ctk.CTkFrame):
             self.file_label.configure(text=os.path.basename(path))
 
     def decrypt_file(self):
-        from mock_crypto import mock_decrypt
+        from proto_crypto import proto_decrypt
 
         if not self.file_path:
             self.message.configure(text="Musisz wybrać zaszyfrowany plik!", text_color="#f87171")
@@ -495,7 +497,7 @@ class DecryptPage(ctk.CTkFrame):
             return
 
         encrypted = open(self.file_path, "r", errors="ignore").read()
-        decrypted = mock_decrypt(encrypted, f"PRIVATE_KEY_{pin}")
+        decrypted = proto_decrypt(encrypted, f"PRIVATE_KEY_{pin}")
 
         basename = os.path.basename(self.file_path)
         name, ext = os.path.splitext(basename)
@@ -729,5 +731,5 @@ if __name__ == "__main__":
     app = PQApp()
     app.mainloop()
 
-    pub, priv = mock_generate_keypair("Kyber")
+    pub, priv = proto_generate_keypair("Kyber")
     print(pub, priv)

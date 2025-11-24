@@ -31,23 +31,32 @@ def proto_generate_keypair(algorithm: str):
 
     return pub, priv
 
-def proto_encrypt(algorithm: str, data: str, public_key: str):
+def proto_encrypt(data: str, public_key: str):
     """
     Szyfruje dane.
     """
+    algorithm = public_key[:5]
+    public_key = public_key[6:]
+
     return f"ENCRYPTED({data})_WITH_{public_key[:10]}..."
 
 def proto_decrypt(algorithm: str, data: str, private_key: str):
     """
     Deszyfruje dane.
     """
+
+    algorithm = private_key[:5]
+    public_key = private_key[6:]
     return f"DECRYPTED({data})_WITH_{private_key[:10]}..."
 
 def proto_sign(algorithm: str, data: str, private_key: str):
     """
     Podpisuje dane.
     """
-    if algorithm == "Falcon": 
+    algorithm = private_key[:5]
+    private_key = private_key[6:]
+
+    if algorithm == "Falco": 
         print(f"Using Falcon algorithm")
         with oqs.Signature("Falcon-1024") as signer:
             signature = signer.sign(data)
@@ -58,14 +67,15 @@ def proto_sign(algorithm: str, data: str, private_key: str):
             signature = signer.sign(data)
             return signature   
 
-    else:
-        return f"SIGNATURE_OF({data})_BY_{private_key[:10]}..."
 
 def proto_verify(algorithm: str, data: str, signature: str, public_key: str):
     """
     Weryfikuje podpis.
     """
-    if algorithm == "Falcon":
+    algorithm = public_key[:5]
+    public_key = public_key[6:]
+
+    if algorithm == "Falco":
         print(f"Using Falcon algorithm")
         with oqs.Signature("Falcon-1024") as signer:
             is_valid = signer.verify(data, signature, public_key)
@@ -77,5 +87,3 @@ def proto_verify(algorithm: str, data: str, signature: str, public_key: str):
             is_valid = signer.verify(data, signature, public_key)
             return is_valid
 
-    else:
-        return random.choice([True, False])
