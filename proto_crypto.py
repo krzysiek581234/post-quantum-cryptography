@@ -8,7 +8,7 @@ def proto_generate_keypair(algorithm: str):
     Generuje parę kluczy dla wybranego algorytmu.
     Zwraca tuple (public_key, private_key) jako stringi.
     """
-    
+
 
     if algorithm == "Dilithium":
         print(f"Using {algorithm} algorithm")
@@ -47,7 +47,7 @@ def proto_encrypt(data: str, public_key: str):
 
     return f"ENCRYPTED({data})_WITH_{public_key[:10]}..."
 
-def proto_decrypt(algorithm: str, data: str, private_key: str):
+def proto_decrypt(data: str, private_key: str):
     """
     Deszyfruje dane.
     """
@@ -56,7 +56,7 @@ def proto_decrypt(algorithm: str, data: str, private_key: str):
     public_key = private_key[6:]
     return f"DECRYPTED({data})_WITH_{private_key[:10]}..."
 
-def proto_sign(algorithm: str, data: str, private_key: str):
+def proto_sign(data: str, private_key: str):
     """
     Podpisuje dane.
     """
@@ -72,10 +72,16 @@ def proto_sign(algorithm: str, data: str, private_key: str):
         print(f"Using Cross algorithm")
         with oqs.Signature("cross-rsdp-256-balanced") as signer:
             signature = signer.sign(data)
+            return signature 
+    elif algorithm == "Dilit":
+        print(f"Using Dilithium algorithm")
+        with oqs.Signature("ML-DSA-44") as signer:
+            signature = signer.sign(data)
             return signature   
 
 
-def proto_verify(algorithm: str, data: str, signature: str, public_key: str):
+
+def proto_verify(data: str, signature: str, public_key: str):
     """
     Weryfikuje podpis.
     """
@@ -93,4 +99,10 @@ def proto_verify(algorithm: str, data: str, signature: str, public_key: str):
         with oqs.Signature("cross-rsdp-256-balanced", public_key) as signer:
             is_valid = signer.verify(data, signature, public_key)
             return is_valid
+        
+    elif algorithm == "Dilit":
+        print(f"Using Dilithium algorithm")
+        with oqs.Signature("ML-DSA-44") as signer:
+            is_valid = signer.verify(data, signature, public_key)
+            return is_valid  
 
