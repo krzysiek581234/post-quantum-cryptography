@@ -3,11 +3,6 @@ import string
 
 import oqs
 
-# print(oqs.get_enabled_sig_mechanisms())
-
-# ["Kyber", "Dilithium", "Picnic", "XMSS", "SPHINCS++"]
-
-
 def proto_generate_keypair(algorithm: str):
     """
     Generuje parę kluczy dla wybranego algorytmu.
@@ -34,37 +29,30 @@ def proto_generate_keypair(algorithm: str):
     else:
         print(f"Algorithm <{algorithm}> does not exist")
 
-    # pub = f"{algorithm.upper()}_PUB_" + ''.join(random.choices(string.ascii_uppercase + string.digits, k=32))
-    # priv = f"{algorithm.upper()}_PRIV_" + ''.join(random.choices(string.ascii_uppercase + string.digits, k=32))
     return pub, priv
 
-def proto_encrypt(data: str, public_key: str):
+def proto_encrypt(algorithm: str, data: str, public_key: str):
     """
     Szyfruje dane.
     """
-
-    if "Kyber" in public_key:
-        pass
-    elif "Dilithium" in public_key:
-        pass
     return f"ENCRYPTED({data})_WITH_{public_key[:10]}..."
 
-def proto_decrypt(data: str, private_key: str):
+def proto_decrypt(algorithm: str, data: str, private_key: str):
     """
     Deszyfruje dane.
     """
     return f"DECRYPTED({data})_WITH_{private_key[:10]}..."
 
-def proto_sign(data: str, private_key: str):
+def proto_sign(algorithm: str, data: str, private_key: str):
     """
     Podpisuje dane.
     """
-    if private_key[:10] == "Falcon": # THIS will not work
+    if algorithm == "Falcon": 
         print(f"Using Falcon algorithm")
         with oqs.Signature("Falcon-1024") as signer:
             signature = signer.sign(data)
             return signature
-    elif private_key[:10] == "Cross": # THIS will not work
+    elif algorithm == "Cross":
         print(f"Using Cross algorithm")
         with oqs.Signature("cross-rsdp-256-balanced") as signer:
             signature = signer.sign(data)
@@ -73,17 +61,17 @@ def proto_sign(data: str, private_key: str):
     else:
         return f"SIGNATURE_OF({data})_BY_{private_key[:10]}..."
 
-def proto_verify(data: str, signature: str, public_key: str):
+def proto_verify(algorithm: str, data: str, signature: str, public_key: str):
     """
     Weryfikuje podpis.
     """
-    if signature[:10] == "Falcon": # THIS will not work
+    if algorithm == "Falcon":
         print(f"Using Falcon algorithm")
         with oqs.Signature("Falcon-1024") as signer:
             is_valid = signer.verify(data, signature, public_key)
             return is_valid
         
-    elif signature[:10] == "Cross": # THIS will not work
+    elif algorithm == "Cross": 
         print(f"Using Cross algorithm")
         with oqs.Signature("cross-rsdp-256-balanced") as signer:
             is_valid = signer.verify(data, signature, public_key)
