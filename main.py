@@ -211,7 +211,7 @@ class KeysPage(ctk.CTkFrame):
 
         ctk.CTkLabel(panel, text="Algorithm").pack(pady=4)
         self.algo = ctk.CTkOptionMenu(panel, values=[
-            "Kyber", "Dilithium", "Picnic", "XMSS", "SPHINCS++"])
+            "Kyber", "Dilithium", "Falcon", "XMSS", "Cross"])
         self.algo.pack(pady=4)
 
         ctk.CTkLabel(panel, text="PIN").pack(pady=4)
