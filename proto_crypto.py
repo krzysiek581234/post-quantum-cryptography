@@ -70,12 +70,12 @@ def proto_sign(data: str, private_key: str):
             return signature
     elif algorithm == "Cross":
         print(f"Using Cross algorithm")
-        with oqs.Signature("cross-rsdp-256-balanced") as signer:
+        with oqs.Signature("cross-rsdp-256-balanced", private_key) as signer:
             signature = signer.sign(data)
             return signature 
     elif algorithm == "Dilit":
         print(f"Using Dilithium algorithm")
-        with oqs.Signature("ML-DSA-44") as signer:
+        with oqs.Signature("ML-DSA-44", private_key) as signer:
             signature = signer.sign(data)
             return signature   
 
@@ -91,18 +91,18 @@ def proto_verify(data: str, signature: str, public_key: str):
     if algorithm == "Falco":
         print(f"Using Falcon algorithm")
         with oqs.Signature("Falcon-1024", public_key) as signer:
-            is_valid = signer.verify(data, signature, public_key)
+            is_valid = signer.verify(data, signature)
             return is_valid
         
     elif algorithm == "Cross": 
         print(f"Using Cross algorithm")
         with oqs.Signature("cross-rsdp-256-balanced", public_key) as signer:
-            is_valid = signer.verify(data, signature, public_key)
+            is_valid = signer.verify(data, signature)
             return is_valid
         
     elif algorithm == "Dilit":
         print(f"Using Dilithium algorithm")
-        with oqs.Signature("ML-DSA-44") as signer:
-            is_valid = signer.verify(data, signature, public_key)
+        with oqs.Signature("ML-DSA-44", public_key) as signer:
+            is_valid = signer.verify(data, signature)
             return is_valid  
 
