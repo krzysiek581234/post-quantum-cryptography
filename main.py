@@ -239,18 +239,15 @@ class KeysPage(ctk.CTkFrame):
             self.message_label.configure(text="PINs do not match!", text_color="#f87171")
             return
 
-        pub, priv, alg_short_name = proto_generate_keypair(algo)
+        pub, priv = proto_generate_keypair(algo)
         self.message_label.configure(
             text=f"Key pair generated!\nPublic: {pub[:16]}...\nPrivate: {priv[:16]}...",
             text_color="#22d3ee"
         )
 
-        pub_key_to_write = f"{pub}"
-        priv_key_to_write = f"{priv}"
-
         try:
             base_file_path = tk.filedialog.asksaveasfilename(
-                filetypes=[("Pub Files", "*.pub"), ("All Files", "*.*")],
+                filetypes=[("Pub Files", ".pub .key"), ("All Files", "*.*")],
                 title="Save Key Pair (Select base filename)"
             )
 
@@ -264,12 +261,12 @@ class KeysPage(ctk.CTkFrame):
                 priv_path = f"{root_path}.key"
 
                 # 4. Write the PUBLIC key (.pem)
-                with open(pub_path, "w") as f:
-                    f.write(pub_key_to_write)
+                with open(pub_path, "wb") as f:
+                    f.write(algo.encode() + b' ' + pub)
 
-                # 5. Write the PRIVATE key (.private)
-                with open(priv_path, "w") as f:
-                    f.write(priv_key_to_write)
+                # 5. Write the PRIVATE key (.key)
+                with open(priv_path, "wb") as f:
+                    f.write(algo.encode() + b' ' + priv)
 
                 # 6. Update UI
                 self.message_label.configure(
@@ -279,9 +276,6 @@ class KeysPage(ctk.CTkFrame):
 
         except Exception as e:
             self.message_label.configure(text=f"Error saving files: {str(e)}", text_color="#f87171")
-
-
-        
 
 
 class SignPage(ctk.CTkFrame):
@@ -295,7 +289,15 @@ class SignPage(ctk.CTkFrame):
         if path:
             self.file_path = path
             self.file_label.configure(text=os.path.basename(path))
-            
+
+    def choose_key(self):
+        path = tk.filedialog.askopenfilename(
+                filetypes=[("Pub Files", ".key"), ("All Files", "*.*")],
+                title="Select Key File"
+            )
+        if path:
+            self.key_path = path
+            self.key_label.configure(text=os.path.basename(path)) 
 
     def sign_file(self):
         from proto_crypto import proto_sign  
@@ -304,18 +306,23 @@ class SignPage(ctk.CTkFrame):
             self.message.configure(text="Musisz wybrać plik!", text_color="#f87171")
             return
 
-        algo = self.algo_option.get()
+        if not self.key_path:
+            self.message.configure(text="Musisz wybrać klucz prywatny!\nJeśli go nie masz - wygeneruj go w zakładce Keys.", text_color="#f87171")
+            return
+        
         pin = self.pin_entry.get()
 
         if not pin:
             self.message.configure(text="PIN jest wymagany!", text_color="#f87171")
             return
 
-        with open(self.file_path, "r", errors="ignore") as f:
+        with open(self.file_path, "rb") as f:
             content = f.read()
-        
+            
+        with open(self.key_path, "rb") as f:
+            key = f.read()
 
-        signature = proto_sign(content, f"{algo}_PRIVATE_KEY")
+        signature = proto_sign(content, key)
 
         # Save signature
         basename = os.path.basename(self.file_path)
@@ -327,7 +334,7 @@ class SignPage(ctk.CTkFrame):
             initialfile=proposed
         )
         if save_path:
-            with open(save_path, "w") as sig:
+            with open(save_path, "wb") as sig:
                 sig.write(signature)
 
             self.message.configure(
@@ -349,9 +356,10 @@ class SignPage(ctk.CTkFrame):
         self.file_label.pack(pady=4)
 
         # Algorithm
-        ctk.CTkLabel(panel, text="Algorithm").pack(pady=8)
-        self.algo_option = ctk.CTkOptionMenu(panel, values=["Kyber", "Dilithium", "Picnic", "XMSS", "SPHINCS++"])
-        self.algo_option.pack()
+        ctk.CTkLabel(panel, text="Select Private Key file (.key)").pack(pady=6)
+        ctk.CTkButton(panel, text="Choose file", command=self.choose_key).pack()
+        self.key_label = ctk.CTkLabel(panel, text="No file selected", text_color="#94a3b8")
+        self.key_label.pack(pady=4)
 
         # PIN
         ctk.CTkLabel(panel, text="PIN").pack(pady=8)
@@ -362,7 +370,6 @@ class SignPage(ctk.CTkFrame):
 
         self.message = ctk.CTkLabel(self, text="", font=("Segoe UI", 13, "bold"))
         self.message.pack(pady=10)
-
 
 
 class VerifyPage(ctk.CTkFrame):
@@ -439,7 +446,6 @@ class VerifyPage(ctk.CTkFrame):
         self.message.pack(pady=10)
 
 
-
 class EncryptPage(ctk.CTkFrame):
     def __init__(self, master):
         super().__init__(master)
@@ -510,7 +516,6 @@ class EncryptPage(ctk.CTkFrame):
         self.message.pack(pady=10)
 
 
-
 class DecryptPage(ctk.CTkFrame):
     def __init__(self, master):
         super().__init__(master)
@@ -573,7 +578,6 @@ class DecryptPage(ctk.CTkFrame):
 
         self.message = ctk.CTkLabel(self, text="", font=("Segoe UI", 13, "bold"))
         self.message.pack(pady=10)
-
 
 
 class SettingsPage(ctk.CTkFrame):
