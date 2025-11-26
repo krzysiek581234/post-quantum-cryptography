@@ -296,8 +296,12 @@ class SignPage(ctk.CTkFrame):
                 title="Select Key File"
             )
         if path:
+            with open(path, "rb") as f:
+                key = f.read()
             self.key_path = path
-            self.key_label.configure(text=os.path.basename(path)) 
+            self.algorithm, self.private_key = key.split(b' ', 1)
+            self.algorithm = self.algorithm.decode()
+            self.key_label.configure(text=f"Key file: {os.path.basename(path)}\nUsing {self.algorithm} algorithm") 
 
     def sign_file(self):
         from proto_crypto import proto_sign  
@@ -318,11 +322,8 @@ class SignPage(ctk.CTkFrame):
 
         with open(self.file_path, "rb") as f:
             content = f.read()
-            
-        with open(self.key_path, "rb") as f:
-            key = f.read()
 
-        signature = proto_sign(content, key)
+        signature = proto_sign(self.algorithm, content, self.private_key)
 
         # Save signature
         basename = os.path.basename(self.file_path)
@@ -335,7 +336,10 @@ class SignPage(ctk.CTkFrame):
         )
         if save_path:
             with open(save_path, "wb") as sig:
+                sig.write(content)
+                sig.write(b"\n\n==========Begin " + self.algorithm.encode() + b" Signature==========\n")
                 sig.write(signature)
+                sig.write(b"\n==========End " + self.algorithm.encode() + b" Signature==========")
 
             self.message.configure(
                 text=f"Podpis wygenerowany pomyślnie!\nZapisano do: {os.path.basename(save_path)}",
@@ -380,37 +384,85 @@ class VerifyPage(ctk.CTkFrame):
         self.pub_path = None
         self.build()
 
+    def find_all(self, string: str, substring: str):
+        positions = []
+
+        start = 0
+        while True:
+            start = string.find(substring, start)
+            if start == -1:
+                break
+            positions.append(start)
+            start += len(substring)
+        return positions
+
     def choose_document(self):
         path = tk.filedialog.askopenfilename()
         if path:
             self.file_path = path
             self.doc_label.configure(text=os.path.basename(path))
+            content = open(self.file_path, "r", errors="ignore").read()
+            
+            begin_positions = self.find_all(content, "==========Begin ")
 
-    def choose_signature(self):
-        path = tk.filedialog.askopenfilename()
-        if path:
-            self.sig_path = path
-            self.sig_label.configure(text=os.path.basename(path))
+            self.content = content[:begin_positions[-1] - 2]
+
+            sig_split = content[begin_positions[-1]:].split('\n')
+
+            if len(sig_split) != 3:
+                print("file coruppted: data appended")
+
+            sig_begin, self.signature, sig_end = sig_split
+
+            if len(sig_begin.split(' ')) != 3:
+                print("file corrupted 1")
+
+            sig_begin_start, begin_algorithm, sig_begin_end = sig_begin.split(' ')
+            
+            if sig_begin_start != "==========Begin":
+                print("file corrupted 2")
+            if sig_begin_end != "Signature==========":
+                print("file corrupted 3")
+
+            if len(sig_end.split(' ')) != 3:
+                print("file corrupted 4")
+            sig_end_start, end_algorithm, sig_end_end = sig_end.split(' ')
+
+            if sig_end_start != "==========End":
+                print("file corrupted 5")
+            if sig_end_end != "Signature==========":
+                print("file corrupted 6")
+
+            if begin_algorithm != end_algorithm:
+                print("file corrupted: algorithms don't match")
+            else:
+                self.algorithm = begin_algorithm
 
     def choose_public_key(self):
-        path = tk.filedialog.askopenfilename()
+        path = tk.filedialog.askopenfilename(
+                filetypes=[("Pub Files", ".pub"), ("All Files", "*.*")],
+                title="Select Key File"
+            )
         if path:
-            self.pub_path = path
-            self.pub_label.configure(text=os.path.basename(path))
+            with open(path, "rb") as f:
+                key = f.read()
+            self.key_path = path
+            self.key_algorithm, self.public_key = key.split(b' ', 1)
+            self.key_algorithm = self.key_algorithm.decode()
+            self.pub_label.configure(text=f"Key file: {os.path.basename(path)}\nUsing {self.key_algorithm} algorithm") 
 
     def verify(self):
         from proto_crypto import proto_verify  # proto verify  :contentReference[oaicite:3]{index=3}
 
-        if not self.file_path or not self.sig_path or not self.pub_path:
+        if not self.file_path or not self.key_path:
             self.message.configure(text="Musisz wybrać plik, podpis i klucz!", text_color="#f87171")
             return
 
-        # read files
-        content = open(self.file_path, "r", errors="ignore").read()
-        signature = open(self.sig_path, "r", errors="ignore").read()
-        public_key = open(self.pub_path, "r", errors="ignore").read()
+        if self.algorithm != self.key_algorithm:
+            self.message.configure(text="Algorytm klucza nie pasuje do algorytmu podpisanego pliku!", text_color="#f87171")
+            return
 
-        result = proto_verify(content, signature, public_key)
+        result = proto_verify(self.algorithm, self.content, self.signature, self.public_key)
 
         if result:
             self.message.configure(text="Podpis jest poprawny!", text_color="#22d3ee")
@@ -428,11 +480,6 @@ class VerifyPage(ctk.CTkFrame):
         ctk.CTkButton(panel, text="Choose document", command=self.choose_document).pack(pady=6)
         self.doc_label = ctk.CTkLabel(panel, text="No file selected", text_color="#94a3b8")
         self.doc_label.pack()
-
-        # Signature
-        ctk.CTkButton(panel, text="Choose signature", command=self.choose_signature).pack(pady=6)
-        self.sig_label = ctk.CTkLabel(panel, text="No signature selected", text_color="#94a3b8")
-        self.sig_label.pack()
 
         # Public key
         ctk.CTkButton(panel, text="Choose public key", command=self.choose_public_key).pack(pady=6)

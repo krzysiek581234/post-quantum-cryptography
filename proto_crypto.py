@@ -1,8 +1,10 @@
+import os
 import random
 import string
-from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-import os
+
 import oqs
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
 
 def proto_generate_keypair(algorithm: str):
     """
@@ -16,7 +18,6 @@ def proto_generate_keypair(algorithm: str):
             pub = kem.generate_keypair()
             priv = kem.export_secret_key()
 
-
     elif algorithm == "Dilithium":
         print(f"Using {algorithm} algorithm")
         with oqs.Signature("ML-DSA-44") as signer:
@@ -27,13 +28,13 @@ def proto_generate_keypair(algorithm: str):
         print(f"Using {algorithm} algorithm")
         with oqs.Signature("Falcon-1024") as signer:
             pub = signer.generate_keypair()
-            priv = signer.export_secret_key() 
+            priv = signer.export_secret_key()
 
     elif algorithm == "Cross":
         print(f"Using {algorithm} algorithm")
         with oqs.Signature("cross-rsdp-256-balanced") as signer:
             pub = signer.generate_keypair()
-            priv = signer.export_secret_key() 
+            priv = signer.export_secret_key()
 
     else:
         print(f"Algorithm <{algorithm}> does not exist")
@@ -47,7 +48,7 @@ def proto_encrypt(data: str, private_key: str):
     """
 
     algorithm, public_key = public_key.split(" ", 1)
-    algorithm = str(algorithm, encoding='utf-8')
+    algorithm = str(algorithm, encoding="utf-8")
 
     if algorithm == "Kyber":
         with oqs.KeyEncapsulation("Kyber512", private_key) as kem:
@@ -72,60 +73,62 @@ def proto_decrypt(data: str, private_key: str):
     """
 
     algorithm, public_key = public_key.split(" ", 1)
-    algorithm = str(algorithm, encoding='utf-8')
+    algorithm = str(algorithm, encoding="utf-8")
 
     return f"DECRYPTED({data})_WITH_{private_key[:10]}..."
 
 
-def proto_sign(data: str, private_key_file: str):
+def proto_sign(algorithm, data: str, private_key: str):
+    from base64 import b64encode
+
     """
     Podpisuje dane.
     """
 
-    algorithm, private_key = private_key_file.split(b' ', 1)
-    algorithm = str(algorithm, encoding='utf-8')
-
-    if algorithm == "Falcon": 
+    if algorithm == "Falcon":
         print(f"Using Falcon algorithm")
         with oqs.Signature("Falcon-1024", private_key) as signer:
             signature = signer.sign(data)
-            return signature
-        
+
     elif algorithm == "Cross":
         print(f"Using Cross algorithm")
         with oqs.Signature("cross-rsdp-256-balanced", private_key) as signer:
             signature = signer.sign(data)
-            return signature 
-        
+
     elif algorithm == "Dilithium":
         print(f"Using Dilithium algorithm")
         with oqs.Signature("ML-DSA-44", private_key) as signer:
             signature = signer.sign(data)
-            return signature
+            print(b64encode(signature))
+    else:
+        return
+
+    return b64encode(signature)
 
 
-def proto_verify(data: str, signature: str, public_key: str):
+def proto_verify(algorithm, data: str, signature: str, public_key: bytes):
     """
     Weryfikuje podpis.
     """
-    
-    algorithm, public_key = public_key.split(" ", 1)
-    algorithm = str(algorithm, encoding='utf-8')
+    from base64 import b64decode
+
+    signature = b64decode(signature)
+    data = data.encode()
 
     if algorithm == "Falcon":
         print(f"Using Falcon algorithm")
-        with oqs.Signature("Falcon-1024", public_key) as signer:
-            is_valid = signer.verify(data, signature)
+        with oqs.Signature("Falcon-1024") as verifier:
+            is_valid = verifier.verify(data, signature, public_key)
             return is_valid
-        
-    elif algorithm == "Cross": 
+
+    elif algorithm == "Cross":
         print(f"Using Cross algorithm")
-        with oqs.Signature("cross-rsdp-256-balanced", public_key) as signer:
-            is_valid = signer.verify(data, signature)
+        with oqs.Signature("cross-rsdp-256-balanced") as verifier:
+            is_valid = verifier.verify(data, signature, public_key)
             return is_valid
-        
+
     elif algorithm == "Dilithium":
         print(f"Using Dilithium algorithm")
-        with oqs.Signature("ML-DSA-44", public_key) as signer:
-            is_valid = signer.verify(data, signature)
-            return is_valid  
+        with oqs.Signature("ML-DSA-44") as verifier:
+            is_valid = verifier.verify(data, signature, public_key)
+            return is_valid
