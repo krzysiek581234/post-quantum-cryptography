@@ -3,7 +3,10 @@ import tkinter as tk
 from tkinter import filedialog
 from PIL import Image, ImageOps, ImageDraw
 import os
-from proto_crypto import proto_generate_keypair
+import time
+from proto_crypto import proto_generate_keypair, proto_sign, proto_verify, proto_encrypt, proto_decrypt
+import threading
+
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
@@ -656,32 +659,206 @@ class BenchmarkPage(ctk.CTkFrame):
         self.build()
 
     def build(self):
-        ctk.CTkLabel(self, text="Generate keys",
+        # Title
+        ctk.CTkLabel(self, text="Algorithm Benchmark",
                      font=("Segoe UI", 18, "bold")).pack(pady=10)
 
+        # Settings Panel
         panel = ctk.CTkFrame(self, corner_radius=12)
         panel.pack(pady=10, padx=20, fill="x")
 
-        ctk.CTkLabel(panel, text="Algorithm").pack(pady=4)
+        # Algorithm Selection
+        ctk.CTkLabel(panel, text="Select Algorithm to Benchmark").pack(pady=4)
         self.algo = ctk.CTkOptionMenu(panel, values=[
             "Kyber", "Dilithium", "Falcon", "XMSS", "Cross"])
         self.algo.pack(pady=4)
 
-        ctk.CTkLabel(panel, text="PIN").pack(pady=4)
-        self.pin1 = ctk.CTkEntry(panel, show="*")
-        self.pin1.pack(pady=4)
+        # Iterations Count
+        ctk.CTkLabel(panel, text="Iterations (higher = more accurate)").pack(pady=4)
+        self.iterations_entry = ctk.CTkEntry(panel)
+        self.iterations_entry.insert(0, "50") 
+        self.iterations_entry.pack(pady=4)
 
-        ctk.CTkLabel(panel, text="Confirm PIN").pack(pady=4)
-        self.pin2 = ctk.CTkEntry(panel, show="*")
-        self.pin2.pack(pady=4)
+        # Start Button
+        self.btn_start = ctk.CTkButton(panel, text="Start Benchmark", command=self.start_benchmark_thread)
+        self.btn_start.pack(pady=15)
 
-        ctk.CTkButton(panel, text="Benchmark", command=self.start_benchmark).pack(pady=10)
+        # Results Area
+        ctk.CTkLabel(self, text="Results:", anchor="w").pack(pady=(10, 0), padx=25, fill="x")
+        
+        self.results_text = ctk.CTkTextbox(self, height=250, font=("Consolas", 12))
+        self.results_text.pack(pady=5, padx=20, fill="both", expand=True)
+        self.results_text.configure(state="disabled")
 
-        self.message_label = ctk.CTkLabel(self, text="", text_color="#22d3ee", font=("Segoe UI", 13, "bold"))
-        self.message_label.pack(pady=8)
+    def log(self, message):
+        """Helper to write to the text box in a thread-safe way"""
+        self.results_text.configure(state="normal")
+        self.results_text.insert("end", message + "\n")
+        self.results_text.see("end")
+        self.results_text.configure(state="disabled")
 
-    def start_benchmark(self):
-        print("Benchmarking not yet implemented.")
+    def clear_log(self):
+        self.results_text.configure(state="normal")
+        self.results_text.delete("1.0", "end")
+        self.results_text.configure(state="disabled")
+
+    def start_benchmark_thread(self):
+        # Disable button
+        self.btn_start.configure(state="disabled", text="Running...")
+        self.clear_log()
+        
+        # Start thread
+        threading.Thread(target=self.run_benchmark, daemon=True).start()
+
+    def run_benchmark(self):
+        algo = self.algo.get()
+        
+        try:
+            iterations = int(self.iterations_entry.get())
+        except ValueError:
+            self.log("Error: Iterations must be a number.")
+            self.btn_start.configure(state="normal", text="Start Benchmark")
+            return
+
+        self.log(f"--- Starting Benchmark for {algo} ---")
+        self.log(f"Iterations: {iterations}")
+        self.log("Please wait...")
+
+        try:
+            # 1. Benchmark Key Generation
+            # ---------------------------
+            start_time = time.time()
+            keys = [] 
+            
+
+            for _ in range(iterations):
+                pub, priv = proto_generate_keypair(algo)
+                keys.append((pub, priv))
+                
+            total_keygen_time = time.time() - start_time
+            avg_keygen = (total_keygen_time / iterations) * 1000 # to ms
+
+            self.log(f"\n[Key Generation]")
+            self.log(f"Total time: {total_keygen_time:.4f}s")
+            self.log(f"Avg time:   {avg_keygen:.2f} ms")
+            self.log(f"Throughput: {iterations / total_keygen_time:.2f} ops/s")
+
+            # 2. Benchmark Signing & Verifying (Signature Algos Only)
+            # -------------------------------------------------------
+            # Check if it's a signature algorithm supported by proto_sign
+            sig_algos = ["Dilithium", "Falcon", "Cross"]
+            
+            if algo in sig_algos:
+                # Prepare data - MUST be bytes for liboqs
+                data_to_sign = b"This is a benchmark string to test post-quantum cryptography performance."
+                
+                # Use the last generated keypair
+                pub_key, priv_key = keys[-1]
+
+                # -- Benchmark Sign --
+                start_time = time.time()
+                signatures = []
+                for _ in range(iterations):
+                    sig = proto_sign(algo, data_to_sign, priv_key)
+                    signatures.append(sig)
+                
+                total_sign_time = time.time() - start_time
+                avg_sign = (total_sign_time / iterations) * 1000
+
+                self.log(f"\n[Signing]")
+                self.log(f"Total time: {total_sign_time:.4f}s")
+                self.log(f"Avg time:   {avg_sign:.2f} ms")
+                self.log(f"Throughput: {iterations / total_sign_time:.2f} ops/s")
+
+                # -- Benchmark Verify --
+                # Use the signatures generated above
+                start_time = time.time()
+                valid_count = 0
+                for i in range(iterations):
+                    # We cycle through signatures if we have many, or just use one
+                    sig = signatures[i]
+                    is_valid = proto_verify(algo, data_to_sign, sig, pub_key)
+                    if is_valid:
+                        valid_count += 1
+
+                total_verify_time = time.time() - start_time
+                avg_verify = (total_verify_time / iterations) * 1000
+
+                self.log(f"\n[Verification]")
+                self.log(f"Total time: {total_verify_time:.4f}s")
+                self.log(f"Avg time:   {avg_verify:.2f} ms")
+                self.log(f"Throughput: {iterations / total_verify_time:.2f} ops/s")
+                self.log(f"Success rate: {valid_count}/{iterations}")
+
+            elif algo == "Kyber":
+                # Prepare data
+                data_to_encrypt = "This is a benchmark string for Kyber encryption."
+                
+                # Use the last generated keypair
+                pub_raw, priv_raw = keys[-1]
+                
+                # Check types to prevent "decoding str is not supported" error
+                if isinstance(pub_raw, bytes):
+                    pub_str_content = pub_raw.decode('latin1')
+                else:
+                    pub_str_content = str(pub_raw)
+                    
+                if isinstance(priv_raw, bytes):
+                    priv_str_content = priv_raw.decode('latin1')
+                else:
+                    priv_str_content = str(priv_raw)
+                
+                # Construct key strings in the format "Algorithm Key" 
+                pub_key_str = f"{algo} {pub_str_content}"
+                priv_key_str = f"{algo} {priv_str_content}"
+
+                # -- Benchmark Encrypt --
+                # Note: Kyber KEM encryption uses the Public Key to encapsulate/encrypt
+                start_time = time.time()
+                ciphertexts = []
+                for _ in range(iterations):
+                    # We pass the public key string to encrypt
+                    ct = proto_encrypt(data_to_encrypt, pub_key_str)
+                    ciphertexts.append(ct)
+                
+                total_enc_time = time.time() - start_time
+                avg_enc = (total_enc_time / iterations) * 1000
+
+                self.log(f"\n[Encryption]")
+                self.log(f"Total time: {total_enc_time:.4f}s")
+                self.log(f"Avg time:   {avg_enc:.2f} ms")
+                self.log(f"Throughput: {iterations / total_enc_time:.2f} ops/s")
+
+                # -- Benchmark Decrypt --
+                start_time = time.time()
+                for i in range(iterations):
+                    # We pass the private key string to decrypt
+                    # Use the ciphertext from the previous step
+                    if ciphertexts[i] is not None:
+                        res = proto_decrypt(ciphertexts[i], priv_key_str)
+
+                total_dec_time = time.time() - start_time
+                avg_dec = (total_dec_time / iterations) * 1000
+
+                self.log(f"\n[Decryption]")
+                self.log(f"Total time: {total_dec_time:.4f}s")
+                self.log(f"Avg time:   {avg_dec:.2f} ms")
+                self.log(f"Throughput: {iterations / total_dec_time:.2f} ops/s")
+                
+            elif algo == "XMSS":
+                self.log("\n[Error]")
+                self.log("XMSS is not currently implemented in the crypto backend.")
+
+            self.log("\n--- Benchmark Complete ---")
+                
+
+        except Exception as e:
+            self.log(f"\n[Error Occurred]\n{str(e)}")
+            import traceback
+            traceback.print_exc()
+
+        # Re-enable button
+        self.btn_start.configure(state="normal", text="Start Benchmark")
 
 
 class HelpPage(ctk.CTkFrame):

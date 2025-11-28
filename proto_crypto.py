@@ -42,7 +42,7 @@ def proto_generate_keypair(algorithm: str):
     return pub, priv
 
 
-def proto_encrypt(data: str, private_key: str):
+def proto_encrypt(data: str, public_key: str):
     """
     Szyfruje dane.
     """
@@ -51,7 +51,7 @@ def proto_encrypt(data: str, private_key: str):
     algorithm = str(algorithm, encoding="utf-8")
 
     if algorithm == "Kyber":
-        with oqs.KeyEncapsulation("Kyber512", private_key) as kem:
+        with oqs.KeyEncapsulation("Kyber512", public_key) as kem:
             ciphertext_kem, shared_secret = kem.encap_secret()
             aes_key = shared_secret[:32]
             aesgcm = AESGCM(aes_key)
