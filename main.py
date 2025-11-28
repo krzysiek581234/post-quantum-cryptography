@@ -30,6 +30,7 @@ class Sidebar(ctk.CTkFrame):
             ("Encrypt", "encrypt"),
             ("Decrypt", "decrypt"),
             ("Settings", "settings"),
+            ("Benchmarks", "benchmarks"),
             ("Help", "help"),
             ("Authors", "authors"),
         ]
@@ -649,6 +650,39 @@ class SettingsPage(ctk.CTkFrame):
         ctk.CTkOptionMenu(panel, values=[
             "Dilithium3", "XMSS", "SPHINCS++"]).pack()
 
+class BenchmarkPage(ctk.CTkFrame):
+    def __init__(self, master):
+        super().__init__(master)
+        self.build()
+
+    def build(self):
+        ctk.CTkLabel(self, text="Generate keys",
+                     font=("Segoe UI", 18, "bold")).pack(pady=10)
+
+        panel = ctk.CTkFrame(self, corner_radius=12)
+        panel.pack(pady=10, padx=20, fill="x")
+
+        ctk.CTkLabel(panel, text="Algorithm").pack(pady=4)
+        self.algo = ctk.CTkOptionMenu(panel, values=[
+            "Kyber", "Dilithium", "Falcon", "XMSS", "Cross"])
+        self.algo.pack(pady=4)
+
+        ctk.CTkLabel(panel, text="PIN").pack(pady=4)
+        self.pin1 = ctk.CTkEntry(panel, show="*")
+        self.pin1.pack(pady=4)
+
+        ctk.CTkLabel(panel, text="Confirm PIN").pack(pady=4)
+        self.pin2 = ctk.CTkEntry(panel, show="*")
+        self.pin2.pack(pady=4)
+
+        ctk.CTkButton(panel, text="Benchmark", command=self.start_benchmark).pack(pady=10)
+
+        self.message_label = ctk.CTkLabel(self, text="", text_color="#22d3ee", font=("Segoe UI", 13, "bold"))
+        self.message_label.pack(pady=8)
+
+    def start_benchmark(self):
+        print("Benchmarking not yet implemented.")
+
 
 class HelpPage(ctk.CTkFrame):
     def __init__(self, master):
@@ -778,6 +812,7 @@ class PQApp(ctk.CTk):
             "encrypt": EncryptPage(self),
             "decrypt": DecryptPage(self),
             "settings": SettingsPage(self),
+            "benchmarks": BenchmarkPage(self),
             "help": HelpPage(self),
             "authors": AuthorsPage(self),
         }
@@ -809,6 +844,7 @@ class PQApp(ctk.CTk):
             "encrypt": ("Encrypt", "Encrypt files using Kyber."),
             "decrypt": ("Decrypt", "Decrypt with USB private key."),
             "settings": ("Settings", "Algorithms & configuration."),
+            "benchmarks": ("Benchmarks", "Benchmark avaliable algorithms."),
             "help": ("Help", "Guides and troubleshooting."),
             "authors": ("Authors", "Team that created this project."),
         }
