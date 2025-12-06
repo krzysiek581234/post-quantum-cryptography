@@ -1,21 +1,23 @@
 import os
 import random
 import string
-from base64 import b64encode
-
-
+from base64 import b64encode, b64decode
 import oqs
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
-SIGNATURE_ALGORITHMS = {"Dilithium": "ML-DSA-44", 
-                        "Falcon": "Falcon-1024", 
-                        "Cross": "cross-rsdp-256-balanced", 
-                        "SPHINCS+": "SPHINCS+-SHAKE-128s-simple"
-                        }
+SIGNATURE_ALGORITHMS = {
+    "Dilithium": "ML-DSA-44",
+    "Falcon": "Falcon-1024",
+    "Cross": "cross-rsdp-256-balanced",
+    "SPHINCS+": "SPHINCS+-SHAKE-128s-simple",
+}
 ENCRYPTION_ALGORITHMS = {"Kyber": "Kyber512"}
-ALL_SUPPORTED_ALGORITHMS = list(SIGNATURE_ALGORITHMS.keys()) + list(ENCRYPTION_ALGORITHMS.keys())
+ALL_SUPPORTED_ALGORITHMS = list(SIGNATURE_ALGORITHMS.keys()) + list(
+    ENCRYPTION_ALGORITHMS.keys()
+)
 
 print(list(SIGNATURE_ALGORITHMS.keys()) + list(ENCRYPTION_ALGORITHMS.keys()))
+
 
 def proto_generate_keypair(algorithm: str):
     """
@@ -27,13 +29,13 @@ def proto_generate_keypair(algorithm: str):
         with oqs.KeyEncapsulation(ENCRYPTION_ALGORITHMS[algorithm]) as kem:
             pub = kem.generate_keypair()
             priv = kem.export_secret_key()
-    
+
     elif algorithm in SIGNATURE_ALGORITHMS:
         print(f"Using {algorithm} algorithm")
         with oqs.Signature(SIGNATURE_ALGORITHMS[algorithm]) as signer:
             pub = signer.generate_keypair()
             priv = signer.export_secret_key()
-            
+
     else:
         print(f"Algorithm <{algorithm}> does not exist")
 
@@ -92,7 +94,9 @@ def proto_sign(algorithm, data: str, private_key: str) -> bytes | None:
     return b64encode(signature)
 
 
-def proto_verify(algorithm, data: bytes, signature: str, public_key: bytes) -> bool | None:
+def proto_verify(
+    algorithm, data: bytes, signature: str, public_key: bytes
+) -> bool | None:
     """
     Weryfikuje podpis.
     """
@@ -104,7 +108,6 @@ def proto_verify(algorithm, data: bytes, signature: str, public_key: bytes) -> b
         with oqs.Signature(SIGNATURE_ALGORITHMS[algorithm]) as verifier:
             is_valid = verifier.verify(data, signature, public_key)
             return is_valid
-    
+
     else:
         return
-        
