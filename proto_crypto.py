@@ -5,37 +5,31 @@ import string
 import oqs
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
+SIGNATURE_ALGORITHMS = {"Dilithium": "ML-DSA-44", 
+                        "Falcon": "Falcon-1024", 
+                        "Cross": "cross-rsdp-256-balanced", 
+                        "SPHINCS+": "SPHINCS+-SHAKE-128s-simple"
+                        }
+ENCRYPTION_ALGORITHMS = {"Kyber": "Kyber512"}
+
 
 def proto_generate_keypair(algorithm: str):
     """
     Generuje parę kluczy dla wybranego algorytmu.
     Zwraca tuple (public_key, private_key) jako stringi.
     """
-
-    if algorithm == "Kyber":
+    if algorithm in ENCRYPTION_ALGORITHMS:
         print(f"Using {algorithm} algorithm")
-        with oqs.KeyEncapsulation("Kyber512") as kem:
+        with oqs.KeyEncapsulation(ENCRYPTION_ALGORITHMS[algorithm]) as kem:
             pub = kem.generate_keypair()
             priv = kem.export_secret_key()
-
-    elif algorithm == "Dilithium":
+    
+    elif algorithm in SIGNATURE_ALGORITHMS:
         print(f"Using {algorithm} algorithm")
-        with oqs.Signature("ML-DSA-44") as signer:
+        with oqs.Signature(SIGNATURE_ALGORITHMS[algorithm]) as signer:
             pub = signer.generate_keypair()
             priv = signer.export_secret_key()
-
-    elif algorithm == "Falcon":
-        print(f"Using {algorithm} algorithm")
-        with oqs.Signature("Falcon-1024") as signer:
-            pub = signer.generate_keypair()
-            priv = signer.export_secret_key()
-
-    elif algorithm == "Cross":
-        print(f"Using {algorithm} algorithm")
-        with oqs.Signature("cross-rsdp-256-balanced") as signer:
-            pub = signer.generate_keypair()
-            priv = signer.export_secret_key()
-
+            
     else:
         print(f"Algorithm <{algorithm}> does not exist")
 
@@ -78,34 +72,25 @@ def proto_decrypt(data: str, private_key: str):
     return f"DECRYPTED({data})_WITH_{private_key[:10]}..."
 
 
-def proto_sign(algorithm, data: str, private_key: str):
+def proto_sign(algorithm, data: str, private_key: str) -> bytes | None:
     from base64 import b64encode
 
     """
     Podpisuje dane.
     """
 
-    if algorithm == "Falcon":
-        print(f"Using Falcon algorithm")
-        with oqs.Signature("Falcon-1024", private_key) as signer:
+    if algorithm in SIGNATURE_ALGORITHMS:
+        print(f"Using {algorithm} algorithm")
+        with oqs.Signature(SIGNATURE_ALGORITHMS[algorithm], private_key) as signer:
             signature = signer.sign(data)
 
-    elif algorithm == "Cross":
-        print(f"Using Cross algorithm")
-        with oqs.Signature("cross-rsdp-256-balanced", private_key) as signer:
-            signature = signer.sign(data)
-
-    elif algorithm == "Dilithium":
-        print(f"Using Dilithium algorithm")
-        with oqs.Signature("ML-DSA-44", private_key) as signer:
-            signature = signer.sign(data)
     else:
         return
 
     return b64encode(signature)
 
 
-def proto_verify(algorithm, data: bytes, signature: str, public_key: bytes):
+def proto_verify(algorithm, data: bytes, signature: str, public_key: bytes) -> bool | None:
     """
     Weryfikuje podpis.
     """
@@ -113,20 +98,12 @@ def proto_verify(algorithm, data: bytes, signature: str, public_key: bytes):
 
     signature = b64decode(signature)
 
-    if algorithm == "Falcon":
-        print(f"Using Falcon algorithm")
-        with oqs.Signature("Falcon-1024") as verifier:
+    if algorithm in SIGNATURE_ALGORITHMS:
+        print(f"Using {algorithm} algorithm")
+        with oqs.Signature(SIGNATURE_ALGORITHMS[algorithm]) as verifier:
             is_valid = verifier.verify(data, signature, public_key)
             return is_valid
-
-    elif algorithm == "Cross":
-        print(f"Using Cross algorithm")
-        with oqs.Signature("cross-rsdp-256-balanced") as verifier:
-            is_valid = verifier.verify(data, signature, public_key)
-            return is_valid
-
-    elif algorithm == "Dilithium":
-        print(f"Using Dilithium algorithm")
-        with oqs.Signature("ML-DSA-44") as verifier:
-            is_valid = verifier.verify(data, signature, public_key)
-            return is_valid
+    
+    else:
+        return
+        

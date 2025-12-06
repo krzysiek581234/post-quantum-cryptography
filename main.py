@@ -172,7 +172,7 @@ class DashboardPage(ctk.CTkFrame):
              "- podpis pliku,\n"
              "- weryfikacja podpisu.\n"),
 
-            ("SPHINCS++",
+            ("SPHINCS+",
              "Hash-based podpis bez limitu użycia. Bardzo odporny na ataki "
              "post-kwantowe.\n\n"
              "Operacje w aplikacji:\n"
@@ -215,7 +215,7 @@ class KeysPage(ctk.CTkFrame):
 
         ctk.CTkLabel(panel, text="Algorithm").pack(pady=4)
         self.algo = ctk.CTkOptionMenu(panel, values=[
-            "Kyber", "Dilithium", "Falcon", "XMSS", "Cross"])
+            "Kyber", "Dilithium", "Falcon", "XMSS", "Cross", "SPHINCS+"])
         self.algo.pack(pady=4)
 
         ctk.CTkLabel(panel, text="PIN").pack(pady=4)
@@ -650,11 +650,11 @@ class SettingsPage(ctk.CTkFrame):
         ctk.CTkCheckBox(panel, text="Dilithium3").pack()
         ctk.CTkCheckBox(panel, text="Picnic").pack()
         ctk.CTkCheckBox(panel, text="XMSS").pack()
-        ctk.CTkCheckBox(panel, text="SPHINCS++").pack()
+        ctk.CTkCheckBox(panel, text="SPHINCS+").pack()
 
         ctk.CTkLabel(panel, text="Default").pack(pady=10)
         ctk.CTkOptionMenu(panel, values=[
-            "Dilithium3", "XMSS", "SPHINCS++"]).pack()
+            "Dilithium3", "XMSS", "SPHINCS+"]).pack()
 
 class BenchmarkPage(ctk.CTkFrame):
     def __init__(self, master):
@@ -673,7 +673,7 @@ class BenchmarkPage(ctk.CTkFrame):
         # Algorithm Selection
         ctk.CTkLabel(panel, text="Select Algorithm to Benchmark").pack(pady=4)
         self.algo = ctk.CTkOptionMenu(panel, values=[
-            "Kyber", "Dilithium", "Falcon", "XMSS", "Cross"])
+            "Kyber", "Dilithium", "Falcon", "XMSS", "Cross", "SPHINCS+"])
         self.algo.pack(pady=4)
 
         # Iterations Count
@@ -749,7 +749,7 @@ class BenchmarkPage(ctk.CTkFrame):
             # 2. Benchmark Signing & Verifying (Signature Algos Only)
             # -------------------------------------------------------
             # Check if it's a signature algorithm supported by proto_sign
-            sig_algos = ["Dilithium", "Falcon", "Cross"]
+            sig_algos = ["Dilithium", "Falcon", "Cross", "SPHINCS+"]
             
             if algo in sig_algos:
                 # Prepare data - MUST be bytes for liboqs
