@@ -16,22 +16,18 @@ ALL_SUPPORTED_ALGORITHMS = list(SIGNATURE_ALGORITHMS.keys()) + list(
     ENCRYPTION_ALGORITHMS.keys()
 )
 
-print(list(SIGNATURE_ALGORITHMS.keys()) + list(ENCRYPTION_ALGORITHMS.keys()))
 
-
-def proto_generate_keypair(algorithm: str):
+def proto_generate_keypair(algorithm: str) -> list[bytes, bytes] | None:
     """
     Generuje parę kluczy dla wybranego algorytmu.
     Zwraca tuple (public_key, private_key) jako stringi.
     """
     if algorithm in ENCRYPTION_ALGORITHMS:
-        print(f"Using {algorithm} algorithm")
         with oqs.KeyEncapsulation(ENCRYPTION_ALGORITHMS[algorithm]) as kem:
             pub = kem.generate_keypair()
             priv = kem.export_secret_key()
 
     elif algorithm in SIGNATURE_ALGORITHMS:
-        print(f"Using {algorithm} algorithm")
         with oqs.Signature(SIGNATURE_ALGORITHMS[algorithm]) as signer:
             pub = signer.generate_keypair()
             priv = signer.export_secret_key()
@@ -84,7 +80,6 @@ def proto_sign(algorithm, data: str, private_key: str) -> bytes | None:
     """
 
     if algorithm in SIGNATURE_ALGORITHMS:
-        print(f"Using {algorithm} algorithm")
         with oqs.Signature(SIGNATURE_ALGORITHMS[algorithm], private_key) as signer:
             signature = signer.sign(data)
 
@@ -104,7 +99,6 @@ def proto_verify(
     signature = b64decode(signature)
 
     if algorithm in SIGNATURE_ALGORITHMS:
-        print(f"Using {algorithm} algorithm")
         with oqs.Signature(SIGNATURE_ALGORITHMS[algorithm]) as verifier:
             is_valid = verifier.verify(data, signature, public_key)
             return is_valid
