@@ -4,8 +4,9 @@ from tkinter import filedialog
 from PIL import Image, ImageOps, ImageDraw
 import os
 import time
-from proto_crypto import proto_generate_keypair, proto_sign, proto_verify, proto_encrypt, proto_decrypt
+from proto_crypto import *
 import threading
+
 
 
 ctk.set_appearance_mode("dark")
@@ -214,8 +215,7 @@ class KeysPage(ctk.CTkFrame):
         panel.pack(pady=10, padx=20, fill="x")
 
         ctk.CTkLabel(panel, text="Algorithm").pack(pady=4)
-        self.algo = ctk.CTkOptionMenu(panel, values=[
-            "Kyber", "Dilithium", "Falcon", "XMSS", "Cross", "SPHINCS+"])
+        self.algo = ctk.CTkOptionMenu(panel, values=ALL_SUPPORTED_ALGORITHMS)
         self.algo.pack(pady=4)
 
         ctk.CTkLabel(panel, text="PIN").pack(pady=4)
@@ -647,14 +647,11 @@ class SettingsPage(ctk.CTkFrame):
         panel.pack(pady=10, padx=20, fill="both")
 
         ctk.CTkLabel(panel, text="Signature Algorithms").pack(pady=6)
-        ctk.CTkCheckBox(panel, text="Dilithium3").pack()
-        ctk.CTkCheckBox(panel, text="Picnic").pack()
-        ctk.CTkCheckBox(panel, text="XMSS").pack()
-        ctk.CTkCheckBox(panel, text="SPHINCS+").pack()
+        for alg in SIGNATURE_ALGORITHMS.keys():
+            ctk.CTkCheckBox(panel, text=alg).pack()
 
         ctk.CTkLabel(panel, text="Default").pack(pady=10)
-        ctk.CTkOptionMenu(panel, values=[
-            "Dilithium3", "XMSS", "SPHINCS+"]).pack()
+        ctk.CTkOptionMenu(panel, values=list(SIGNATURE_ALGORITHMS.keys())).pack()
 
 class BenchmarkPage(ctk.CTkFrame):
     def __init__(self, master):
@@ -672,8 +669,7 @@ class BenchmarkPage(ctk.CTkFrame):
 
         # Algorithm Selection
         ctk.CTkLabel(panel, text="Select Algorithm to Benchmark").pack(pady=4)
-        self.algo = ctk.CTkOptionMenu(panel, values=[
-            "Kyber", "Dilithium", "Falcon", "XMSS", "Cross", "SPHINCS+"])
+        self.algo = ctk.CTkOptionMenu(panel, values=ALL_SUPPORTED_ALGORITHMS)
         self.algo.pack(pady=4)
 
         # Iterations Count
@@ -749,9 +745,12 @@ class BenchmarkPage(ctk.CTkFrame):
             # 2. Benchmark Signing & Verifying (Signature Algos Only)
             # -------------------------------------------------------
             # Check if it's a signature algorithm supported by proto_sign
-            sig_algos = ["Dilithium", "Falcon", "Cross", "SPHINCS+"]
             
-            if algo in sig_algos:
+            if algo == "XMSS":
+                self.log("\n[Error]")
+                self.log("XMSS is not currently implemented in the crypto backend.")
+
+            elif algo in SIGNATURE_ALGORITHMS.keys():
                 # Prepare data - MUST be bytes for liboqs
                 data_to_sign = b"This is a benchmark string to test post-quantum cryptography performance."
                 
@@ -793,7 +792,7 @@ class BenchmarkPage(ctk.CTkFrame):
                 self.log(f"Throughput: {iterations / total_verify_time:.2f} ops/s")
                 self.log(f"Success rate: {valid_count}/{iterations}")
 
-            elif algo == "Kyber":
+            elif algo in ENCRYPTION_ALGORITHMS.keys():
                 # Prepare data
                 data_to_encrypt = "This is a benchmark string for Kyber encryption."
                 
@@ -847,10 +846,6 @@ class BenchmarkPage(ctk.CTkFrame):
                 self.log(f"Total time: {total_dec_time:.4f}s")
                 self.log(f"Avg time:   {avg_dec:.2f} ms")
                 self.log(f"Throughput: {iterations / total_dec_time:.2f} ops/s")
-                
-            elif algo == "XMSS":
-                self.log("\n[Error]")
-                self.log("XMSS is not currently implemented in the crypto backend.")
 
             self.log("\n--- Benchmark Complete ---")
                 

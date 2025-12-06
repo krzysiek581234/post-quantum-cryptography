@@ -11,7 +11,9 @@ SIGNATURE_ALGORITHMS = {"Dilithium": "ML-DSA-44",
                         "SPHINCS+": "SPHINCS+-SHAKE-128s-simple"
                         }
 ENCRYPTION_ALGORITHMS = {"Kyber": "Kyber512"}
+ALL_SUPPORTED_ALGORITHMS = list(SIGNATURE_ALGORITHMS.keys()) + list(ENCRYPTION_ALGORITHMS.keys())
 
+print(list(SIGNATURE_ALGORITHMS.keys()) + list(ENCRYPTION_ALGORITHMS.keys()))
 
 def proto_generate_keypair(algorithm: str):
     """
