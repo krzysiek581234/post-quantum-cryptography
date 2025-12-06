@@ -386,9 +386,12 @@ class VerifyPage(ctk.CTkFrame):
         self.file_path = None
         self.sig_path = None
         self.pub_path = None
+        self.algorithm = None
         self.build()
 
     def find_all(self, string: str, substring: str):
+        '''Searches for all occurences of a substring in a string'''
+
         positions = []
 
         start = 0
@@ -405,13 +408,13 @@ class VerifyPage(ctk.CTkFrame):
         if path:
             self.file_path = path
             self.doc_label.configure(text=os.path.basename(path))
-            content = open(self.file_path, "r", errors="ignore").read()
+            content = open(self.file_path, "rb").read()
             
-            begin_positions = self.find_all(content, "==========Begin ")
+            begin_positions = self.find_all(content.decode(), "==========Begin ")
 
             self.content = content[:begin_positions[-1] - 2]
 
-            sig_split = content[begin_positions[-1]:].split('\n')
+            sig_split = content[begin_positions[-1]:].decode().split('\n')
 
             if len(sig_split) != 3:
                 print("file coruppted: data appended")

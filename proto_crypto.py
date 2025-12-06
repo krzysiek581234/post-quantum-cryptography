@@ -99,21 +99,19 @@ def proto_sign(algorithm, data: str, private_key: str):
         print(f"Using Dilithium algorithm")
         with oqs.Signature("ML-DSA-44", private_key) as signer:
             signature = signer.sign(data)
-            print(b64encode(signature))
     else:
         return
 
     return b64encode(signature)
 
 
-def proto_verify(algorithm, data: str, signature: str, public_key: bytes):
+def proto_verify(algorithm, data: bytes, signature: str, public_key: bytes):
     """
     Weryfikuje podpis.
     """
     from base64 import b64decode
 
     signature = b64decode(signature)
-    data = data.encode()
 
     if algorithm == "Falcon":
         print(f"Using Falcon algorithm")
