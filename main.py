@@ -6,7 +6,7 @@ import os
 import time
 from proto_crypto import *
 import threading
-
+import traceback
 
 
 ctk.set_appearance_mode("dark")
@@ -308,8 +308,6 @@ class SignPage(ctk.CTkFrame):
             self.key_label.configure(text=f"Key file: {os.path.basename(path)}\nUsing {self.algorithm} algorithm") 
 
     def sign_file(self):
-        from proto_crypto import proto_sign  
-
         if not self.file_path:
             self.message.configure(text="Musisz wybrać plik!", text_color="#f87171")
             return
@@ -459,8 +457,6 @@ class VerifyPage(ctk.CTkFrame):
             self.pub_label.configure(text=f"Key file: {os.path.basename(path)}\nUsing {self.key_algorithm} algorithm") 
 
     def verify(self):
-        from proto_crypto import proto_verify  # proto verify  :contentReference[oaicite:3]{index=3}
-
         if not self.file_path or not self.key_path:
             self.message.configure(text="Musisz wybrać plik, podpis i klucz!", text_color="#f87171")
             return
@@ -520,8 +516,6 @@ class EncryptPage(ctk.CTkFrame):
             self.key_label.configure(text=os.path.basename(path))
 
     def encrypt_file(self):
-        from proto_crypto import proto_encrypt
-
         if not self.file_path or not self.key_path:
             self.message.configure(text="Musisz wybrać plik i klucz!", text_color="#f87171")
             return
@@ -583,8 +577,6 @@ class DecryptPage(ctk.CTkFrame):
             self.file_label.configure(text=os.path.basename(path))
 
     def decrypt_file(self):
-        from proto_crypto import proto_decrypt
-
         if not self.file_path:
             self.message.configure(text="Musisz wybrać zaszyfrowany plik!", text_color="#f87171")
             return
@@ -852,7 +844,6 @@ class BenchmarkPage(ctk.CTkFrame):
 
         except Exception as e:
             self.log(f"\n[Error Occurred]\n{str(e)}")
-            import traceback
             traceback.print_exc()
 
         # Re-enable button

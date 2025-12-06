@@ -1,6 +1,8 @@
 import os
 import random
 import string
+from base64 import b64encode
+
 
 import oqs
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
@@ -75,8 +77,6 @@ def proto_decrypt(data: str, private_key: str):
 
 
 def proto_sign(algorithm, data: str, private_key: str) -> bytes | None:
-    from base64 import b64encode
-
     """
     Podpisuje dane.
     """
@@ -96,7 +96,6 @@ def proto_verify(algorithm, data: bytes, signature: str, public_key: bytes) -> b
     """
     Weryfikuje podpis.
     """
-    from base64 import b64decode
 
     signature = b64decode(signature)
 
