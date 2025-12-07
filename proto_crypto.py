@@ -1,6 +1,7 @@
 import os
 import random
 import string
+import json
 from base64 import b64encode, b64decode
 import oqs
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
@@ -38,42 +39,49 @@ def proto_generate_keypair(algorithm: str) -> list[bytes, bytes] | None:
     return pub, priv
 
 
-def proto_encrypt(data: str, public_key: str):
+def proto_encrypt(algorithm, data: str, public_key: str):
     """
     Szyfruje dane.
     """
 
-    algorithm, public_key = public_key.split(" ", 1)
-    algorithm = str(algorithm, encoding="utf-8")
-
     if algorithm in ENCRYPTION_ALGORITHMS:
-        with oqs.KeyEncapsulation(algorithm, public_key) as kem:
-            ciphertext_kem, shared_secret = kem.encap_secret()
+        with oqs.KeyEncapsulation(algorithm) as kem:
+            ciphertext, shared_secret = kem.encap_secret(public_key)
             aes_key = shared_secret[:32]
             aesgcm = AESGCM(aes_key)
             nonce = os.urandom(12)
-            encrypted = aesgcm.encrypt(nonce, data.encode(), None)
+            encrypted = aesgcm.encrypt(nonce, data, None)
 
-            return {
-                "kem_ciphertex": ciphertext_kem.hex(),
+            return json.dumps({
+                "algorithm": algorithm,
+                "kem_ciphertex": ciphertext.hex(),
                 "aes_nonce": nonce.hex(),
                 "aes_payload": encrypted.hex(),
-            }
+            }).encode()
     else:
         print(f"Zla nazwa algorytmu: {algorithm}")
 
     # return f"ENCRYPTED({data})_WITH_{public_key[:10]}..."
 
 
-def proto_decrypt(data: str, private_key: str):
+def proto_decrypt(algorithm, ciphertext, nonce, aes_payload, private_key: str):
     """
     Deszyfruje dane.
     """
+        
+    
+    with oqs.KeyEncapsulation(algorithm, private_key) as kem:
+        shared_secret = kem.decap_secret(ciphertext)
 
-    algorithm, public_key = public_key.split(" ", 1)
-    algorithm = str(algorithm, encoding="utf-8")
+    aes_key = shared_secret[:32]
+    aesgcm = AESGCM(aes_key)
 
-    return f"DECRYPTED({data})_WITH_{private_key[:10]}..."
+    try:
+        decrypted = aesgcm.decrypt(nonce, aes_payload, None)
+    except Exception as e:
+        raise ValueError(f"Blad odszyfrowania: {e}")
+    
+    return decrypted
 
 
 def proto_sign(algorithm, data: str, private_key: str) -> bytes | None:
