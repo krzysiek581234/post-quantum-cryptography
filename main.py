@@ -99,12 +99,18 @@ class StatusBar(ctk.CTkFrame):
             "algo": ctk.CTkLabel(self, text="Algo: Dilithium3", text_color="#a1a1aa"),
         }
 
+
         for i, (k, widget) in enumerate(self.items.items()):
             widget.grid(row=0, column=i, padx=10, pady=6)
 
     def update_item(self, key, text):
         self.items[key].configure(text=text)
 
+    def set_private_key_status(self, unlocked: bool):
+        if unlocked:
+            self.items["priv"].configure(text="Private key: Unlocked ✓", text_color="#22d3ee")
+        else:
+            self.items["priv"].configure(text="Private key: Locked 🔒", text_color="#eab308")
 
     def set_usb_status(self, connected: bool, path=None):
         if connected:
@@ -1030,6 +1036,10 @@ class PQApp(ctk.CTk):
         super().__init__()
         self.geometry("1920x1080")
         self.title("Post-Quantum Crypto App")
+        self.private_key_bytes = None
+        self.usb_algorithm = None
+        self.key_unlocked = False
+
 
         # GRID LAYOUT
         self.grid_columnconfigure(1, weight=1)  
@@ -1099,12 +1109,21 @@ class PQApp(ctk.CTk):
         import globals
 
         if globals.usb_detected_event.is_set():
-            usb_path = globals.usb_path_queue.get()
-            globals.usb_detected_event.clear()
-            self.usb_key_path = usb_path
-            self.statusbar.set_usb_status(True, usb_path)
+            detection = globals.usb_path_queue.get()
+            path, algo, key_bytes = detection
 
+            self.usb_key_path = path
+            self.usb_algorithm = algo
+            self.private_key_bytes = key_bytes
+            self.key_unlocked = False
+
+            self.statusbar.set_usb_status(True, path)
+            self.statusbar.update_item("algo", f"Algo: {algo}")
+            self.statusbar.set_private_key_status(False)  # show Locked
         self.after(1000, self.check_usb_event)
+
+
+    
 
 
 if __name__ == "__main__":

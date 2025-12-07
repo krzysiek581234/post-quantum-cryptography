@@ -5,35 +5,43 @@ import time
 import threading
 
 
-
 def start_usb_detection_thread():
     detection_thread = threading.Thread(target=usb_detection_loop, daemon=True)
     detection_thread.start()
-    
+
+
 def usb_detection_loop():
     while True:
-        usb_path = detect_usb()
-        if usb_path and usb_path != "False":
-            globals.usb_path_queue.put(usb_path)
+        detection = detect_usb()
+        if detection:  # detection = (path, algo, key_bytes)
+            globals.usb_path_queue.put(detection)
             globals.usb_detected_event.set()
-        time.sleep(5)  # Check every 5 seconds
+        time.sleep(3)  # check frequently, but not aggressively
+
 
 def detect_usb():
-    for partition in psutil.disk_partitions():
-        if 'removable' in partition.opts:
-            removable_disk = partition.mountpoint
-            if not globals.foundUSB:
-                print(f"Found USB drive at {removable_disk} (Name: {partition.device})")
-            key_file_path = os.path.join(removable_disk, 'encrypted_private_key.bin')
-            if os.path.exists(key_file_path):
-                if not globals.foundUSB:
-                    print("Found key.pem file on the removable disk.")
-                globals.foundUSB = True
-                globals.path_private_key = key_file_path
-                return key_file_path
-            else:
-                globals.foundUSB = False
-                print("key.pem file not found on the removable disk.")
+    """
+    Szuka pendrive'a, sprawdza czy zawiera klucz prywatny
+    i zwraca tuple: (ścieżka, algorytm, klucz binarny)
+    """
 
-    globals.foundUSB = False
-    return "False"
+    for partition in psutil.disk_partitions():
+        if "removable" in partition.opts:
+            mount = partition.mountpoint
+            key_path = os.path.join(mount, "encrypted_private_key.bin")
+
+            if os.path.exists(key_path):
+
+                try:
+                    with open(key_path, "rb") as f:
+                        raw = f.read()
+
+                    algo, priv_key = raw.split(b" ", 1)
+                    algo = algo.decode()
+
+                    return key_path, algo, priv_key
+
+                except Exception as e:
+                    print(f"[USB ERROR] Nie udalo sie wczytac klucza: {e}")
+
+    return None
