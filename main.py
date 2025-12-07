@@ -106,6 +106,19 @@ class StatusBar(ctk.CTkFrame):
         self.items[key].configure(text=text)
 
 
+    def set_usb_status(self, connected: bool, path=None):
+        if connected:
+            self.items["usb"].configure(
+                text=f"USB: Connected({path})",
+                text_color="#22ee66"
+            )
+        else:
+            self.items["usb"].configure(
+                text="USB: Not connected",
+                text_color="#a81351"
+            )
+
+
 # ------------------------------
 #   MAIN CONTENT PAGES
 # ------------------------------
@@ -1047,6 +1060,17 @@ class PQApp(ctk.CTk):
 
         t, d = titles[page]
         self.topbar.update(t, d)
+
+    def check_usb_event(self):
+        import globals
+
+        if globals.usb_detected_event.is_set():
+            usb_path = globals.usb_path_queue.get()
+            globals.usb_detected_event.clear()
+            self.usb_key_path = usb_path
+            self.statusbar.set_usb_status(True, usb_path)
+
+        self.after(1000, self.check_usb_event)
 
 
 if __name__ == "__main__":
