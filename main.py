@@ -215,8 +215,29 @@ class KeysPage(ctk.CTkFrame):
         panel.pack(pady=10, padx=20, fill="x")
 
         ctk.CTkLabel(panel, text="Algorithm").pack(pady=4)
-        self.algo = ctk.CTkOptionMenu(panel, values=ALL_SUPPORTED_ALGORITHMS)
+        self.algo = ctk.CTkOptionMenu(
+            panel, 
+            values=ALL_SUPPORTED_ALGORITHMS,
+            command=self.algo_type
+            )
         self.algo.pack(pady=4)
+
+        self.kyber_mode_var = tk.StringVar(value="512")
+        self.kyber_modes_frame = ctk.CTkFrame(panel, corner_radius=8, fg_color="transparent")
+        ctk.CTkLabel(self.kyber_modes_frame, text="Kyber mode (key length)").pack(pady=4)
+
+        self.mode_container = ctk.CTkFrame(self.kyber_modes_frame, fg_color="transparent")
+        self.mode_container.pack(pady=4)
+
+        for mode in ["512", "768", "1024"]:
+            ctk.CTkRadioButton(
+                self.mode_container,
+                text=mode,
+                variable=self.kyber_mode_var,
+                value=mode
+            ).pack(side="left", padx=10)
+
+        self.kyber_modes_frame.pack_forget()
 
         ctk.CTkLabel(panel, text="PIN").pack(pady=4)
         self.pin1 = ctk.CTkEntry(panel, show="*")
@@ -231,6 +252,12 @@ class KeysPage(ctk.CTkFrame):
         self.message_label = ctk.CTkLabel(self, text="", text_color="#22d3ee", font=("Segoe UI", 13, "bold"))
         self.message_label.pack(pady=8)
 
+    def algo_type(self, choice):
+        if choice == "Kyber":
+            self.kyber_modes_frame.pack(pady=6, fill="x")
+        else:
+            self.kyber_modes_frame.pack_forget()
+
     def generate_key(self):
         algo = self.algo.get()
         pin1 = self.pin1.get()
@@ -242,6 +269,9 @@ class KeysPage(ctk.CTkFrame):
         if pin1 != pin2:
             self.message_label.configure(text="PINs do not match!", text_color="#f87171")
             return
+        
+        if algo == "Kyber":
+            algo = f"Kyber{self.kyber_mode_var.get()}"
 
         pub, priv = proto_generate_keypair(algo)
         self.message_label.configure(
