@@ -11,10 +11,10 @@ SIGNATURE_ALGORITHMS = {
     "Cross": "cross-rsdp-256-balanced",
     "SPHINCS+": "SPHINCS+-SHAKE-128s-simple",
 }
-ENCRYPTION_ALGORITHMS = {"Kyber": "Kyber512"}
+ENCRYPTION_ALGORITHMS = ["Kyber", "Kyber512", "Kyber768", "Kyber1024"]
 ALL_SUPPORTED_ALGORITHMS = list(SIGNATURE_ALGORITHMS.keys()) + list(
-    ENCRYPTION_ALGORITHMS.keys()
-)
+    ENCRYPTION_ALGORITHMS)
+
 
 
 def proto_generate_keypair(algorithm: str) -> list[bytes, bytes] | None:
@@ -23,7 +23,7 @@ def proto_generate_keypair(algorithm: str) -> list[bytes, bytes] | None:
     Zwraca tuple (public_key, private_key) jako stringi.
     """
     if algorithm in ENCRYPTION_ALGORITHMS:
-        with oqs.KeyEncapsulation(ENCRYPTION_ALGORITHMS[algorithm]) as kem:
+        with oqs.KeyEncapsulation(algorithm) as kem:
             pub = kem.generate_keypair()
             priv = kem.export_secret_key()
 
@@ -46,8 +46,8 @@ def proto_encrypt(data: str, public_key: str):
     algorithm, public_key = public_key.split(" ", 1)
     algorithm = str(algorithm, encoding="utf-8")
 
-    if algorithm == "Kyber":
-        with oqs.KeyEncapsulation("Kyber512", public_key) as kem:
+    if algorithm in ENCRYPTION_ALGORITHMS:
+        with oqs.KeyEncapsulation(algorithm, public_key) as kem:
             ciphertext_kem, shared_secret = kem.encap_secret()
             aes_key = shared_secret[:32]
             aesgcm = AESGCM(aes_key)
@@ -59,6 +59,8 @@ def proto_encrypt(data: str, public_key: str):
                 "aes_nonce": nonce.hex(),
                 "aes_payload": encrypted.hex(),
             }
+    else:
+        print(f"Zla nazwa algorytmu: {algorithm}")
 
     # return f"ENCRYPTED({data})_WITH_{public_key[:10]}..."
 

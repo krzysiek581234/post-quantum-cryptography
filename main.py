@@ -217,7 +217,7 @@ class KeysPage(ctk.CTkFrame):
         ctk.CTkLabel(panel, text="Algorithm").pack(pady=4)
         self.algo = ctk.CTkOptionMenu(
             panel, 
-            values=ALL_SUPPORTED_ALGORITHMS,
+            values=ALL_SUPPORTED_ALGORITHMS[:-3],
             command=self.algo_type
             )
         self.algo.pack(pady=4)
