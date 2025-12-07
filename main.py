@@ -540,20 +540,27 @@ class EncryptPage(ctk.CTkFrame):
             self.file_label.configure(text=os.path.basename(path))
 
     def choose_key(self):
-        path = tk.filedialog.askopenfilename()
+        path = tk.filedialog.askopenfilename(
+            filetypes=[("Pub Files", ".pub"), ("All Files", "*.*")],
+            title="Select Public Key File"
+            )
         if path:
+            with open(path,"rb") as f:
+                key = f.read()
             self.key_path = path
-            self.key_label.configure(text=os.path.basename(path))
+            self.algorithm, self.public_key = key.split(b' ', 1)
+            self.algorithm = self.algorithm.decode()
+            self.key_label.configure(text=f"Key file: {os.path.basename(path)}\nUsing {self.algorithm} algorithm")
 
     def encrypt_file(self):
         if not self.file_path or not self.key_path:
             self.message.configure(text="Musisz wybrać plik i klucz!", text_color="#f87171")
             return
 
-        content = open(self.file_path, "r", errors="ignore").read()
-        private_key = open(self.key_path, "r", errors="ignore").read()
+        content = open(self.file_path, "rb").read()
+        #private_key = open(self.key_path, "r", errors="ignore").read()
 
-        encrypted = proto_encrypt(content, private_key)
+        encrypted = proto_encrypt(self.algorithm, content, self.public_key)
 
         basename = os.path.basename(self.file_path)
         name, ext = os.path.splitext(basename)
@@ -582,7 +589,7 @@ class EncryptPage(ctk.CTkFrame):
         self.file_label = ctk.CTkLabel(panel, text="No file selected", text_color="#94a3b8")
         self.file_label.pack()
 
-        ctk.CTkLabel(panel, text="Recipient private key").pack(pady=6)
+        ctk.CTkLabel(panel, text="Recipient public key").pack(pady=6)
         ctk.CTkButton(panel, text="Choose key", command=self.choose_key).pack()
 
         self.key_label = ctk.CTkLabel(panel, text="No key selected", text_color="#94a3b8")
@@ -605,19 +612,45 @@ class DecryptPage(ctk.CTkFrame):
         if path:
             self.file_path = path
             self.file_label.configure(text=os.path.basename(path))
+            with open(self.file_path, "rb") as f:
+                encrypted_json = f.read()
+
+        try:
+            packet = json.loads(encrypted_json)
+        except Exception as e:
+            raise ValueError(f"Plik nie jest poprawnym jsonem: {e}")
+        
+        try:
+            self.json_algorithm = packet["algorithm"]
+            self.ciphertext = bytes.fromhex(packet["kem_ciphertex"])
+            self.nonce = bytes.fromhex(packet["aes_nonce"])
+            self.aes_payload = bytes.fromhex(packet["aes_payload"])
+        except Exception as e:
+            raise ValueError(f"Plik nie posiada odpowiednich skladnikow: {e}")
+
+    def choose_key(self):
+        path = tk.filedialog.askopenfilename(
+                filetypes=[("Pub Files", ".key"), ("All Files", "*.*")],
+                title="Select Private Key File"
+            )
+        if path:
+            with open(path, "rb") as f:
+                key = f.read()
+            self.key_path = path
+            self.algorithm, self.private_key = key.split(b' ', 1)
+            self.algorithm = self.algorithm.decode()
+            self.key_label.configure(text=f"Key file: {os.path.basename(path)}\nUsing {self.algorithm} algorithm")
 
     def decrypt_file(self):
-        if not self.file_path:
-            self.message.configure(text="Musisz wybrać zaszyfrowany plik!", text_color="#f87171")
+        if not self.file_path or not self.key_path:
+            self.message.configure(text="Musisz wybrać zaszyfrowany plik i klucz!", text_color="#f87171")
             return
+        
+        if self.json_algorithm != self.algorithm:
+            raise ValueError(f"Algorytm ktorym zakodowany jest plik nie zgadza sie z algorytmem klucza")
 
-        pin = self.pin_entry.get()
-        if not pin:
-            self.message.configure(text="PIN jest wymagany!", text_color="#f87171")
-            return
 
-        encrypted = open(self.file_path, "r", errors="ignore").read()
-        decrypted = proto_decrypt(encrypted, f"PRIVATE_KEY_{pin}")
+        decrypted = proto_decrypt(self.algorithm, self.ciphertext, self.nonce, self.aes_payload, self.private_key)
 
         basename = os.path.basename(self.file_path)
         name, ext = os.path.splitext(basename)
@@ -628,7 +661,7 @@ class DecryptPage(ctk.CTkFrame):
             initialfile=proposed
         )
         if save_path:
-            with open(save_path, "w") as f:
+            with open(save_path, "wb") as f:
                 f.write(decrypted)
 
             self.message.configure(
@@ -647,8 +680,9 @@ class DecryptPage(ctk.CTkFrame):
         self.file_label = ctk.CTkLabel(panel, text="No file selected", text_color="#94a3b8")
         self.file_label.pack()
 
-        self.pin_entry = ctk.CTkEntry(panel, placeholder_text="Enter PIN", show="*")
-        self.pin_entry.pack(pady=6)
+        ctk.CTkButton(panel, text="Choose private key", command=self.choose_key).pack(pady=6)
+        self.key_label = ctk.CTkLabel(panel, text="No key selected", text_color="#94a3b8")
+        self.key_label.pack(pady=4)
 
         ctk.CTkButton(panel, text="Decrypt", command=self.decrypt_file).pack(pady=12)
 
