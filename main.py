@@ -1174,11 +1174,41 @@ class HelpPage(ctk.CTkFrame):
         self.build()
 
     def build(self):
-        ctk.CTkLabel(self, text="Help & Documentation",
-                     font=("Segoe UI", 18, "bold")).pack(pady=10)
+        ctk.CTkLabel(
+            self,
+            text="Help & Documentation",
+            font=("Segoe UI", 18, "bold")
+        ).pack(pady=10)
 
-        ctk.CTkLabel(self, text="Guides, troubleshooting, explanation of algorithms.",
-                     text_color="#94a3b8").pack(pady=10)
+        text = (
+            "Witaj w centrum pomocy aplikacji PQ-Crypto.\n\n"
+            "Ta aplikacja chroni Twoje pliki przy użyciu algorytmów "
+            "odpornych na ataki z wykorzystaniem komputerów kwantowych.\n\n"
+            "Jak zacząć?\n"
+            "• Keys — generuj pary kluczy zabezpieczone hasłem.\n"
+            "• Sign — podpisuj dokumenty kluczem prywatnym.\n"
+            "• Verify — sprawdzaj autentyczność podpisu.\n"
+            "• Encrypt — szyfruj dane dla odbiorcy.\n"
+            "• Decrypt — odszyfruj pliki używając klucza USB lub plikowego.\n\n"
+            "Klucze USB są automatycznie wykrywane, a pasek stanu "
+            "informuje o ich stanie i algorytmie.\n\n"
+            "Jeśli aplikacja poprosi o hasło, oznacza to, że Twój klucz prywatny\n"
+            "jest chroniony i wymaga autoryzacji do odblokowania.\n\n"
+            "Benchmark — porównuje szybkość algorytmów, abyś mógł ocenić "
+            "wydajność kryptografii post-kwantowej.\n\n"
+            "Jeśli coś nie działa:\n"
+            "• upewnij się, że pendrive jest podłączony,\n"
+            "• sprawdź zgodność algorytmu klucza i pliku,\n"
+            "• zweryfikuj poprawność wpisanego hasła.\n\n"
+            "Eksperymentuj i rozwijaj się — bezpieczeństwo przyszłości "
+            "budujesz już dziś!"
+        )
+
+        help_box = ctk.CTkTextbox(self, height=420, font=("Segoe UI", 13))
+        help_box.pack(padx=20, pady=10, fill="both", expand=True)
+        help_box.insert("1.0", text)
+        help_box.configure(state="disabled")
+
 
 
 class AuthorsPage(ctk.CTkFrame):
