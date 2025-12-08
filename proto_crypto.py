@@ -5,6 +5,11 @@ import json
 from base64 import b64encode, b64decode
 import oqs
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+
 
 SIGNATURE_ALGORITHMS = {
     "Dilithium": "ML-DSA-44",
@@ -115,3 +120,62 @@ def proto_verify(
 
     else:
         return
+
+def _derive_key(passphrase: str, salt: bytes) -> bytes:
+    """
+    Converts passphrase + salt into strong AES key (32 bytes).
+    """
+
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=salt,
+        iterations=200_000,
+    )
+
+    return kdf.derive(passphrase.encode())
+
+
+def encrypt_private_key(private_key: bytes, passphrase: str) -> bytes:
+    """
+    Encrypts private key using AES-GCM and password-derived key.
+    Returns base64-encoded JSON package.
+    """
+
+    salt = os.urandom(16)
+    key = _derive_key(passphrase, salt)
+
+    aes = AESGCM(key)
+    nonce = os.urandom(12)
+
+    ciphertext = aes.encrypt(nonce, private_key, None)
+
+    package = {
+        "salt": b64encode(salt).decode(),
+        "nonce": b64encode(nonce).decode(),
+        "ciphertext": b64encode(ciphertext).decode(),
+    }
+
+    return b64encode(json.dumps(package).encode())
+
+
+def decrypt_private_key(encrypted_priv_key: bytes, passphrase: str) -> bytes:
+    """
+    Decrypts base64-encoded encrypted private key with passphrase.
+    """
+
+    raw = json.loads(b64decode(encrypted_priv_key).decode())
+
+    salt = b64decode(raw["salt"])
+    nonce = b64decode(raw["nonce"])
+    ciphertext = b64decode(raw["ciphertext"])
+
+    key = _derive_key(passphrase, salt)
+
+    aes = AESGCM(key)
+
+    try:
+        print("Trying to decrypt private key...")
+        return aes.decrypt(nonce, ciphertext, None)
+    except Exception:
+        raise ValueError("Zła fraza lub uszkodzone dane")

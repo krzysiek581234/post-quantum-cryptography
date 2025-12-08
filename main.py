@@ -4,10 +4,12 @@ from tkinter import filedialog
 from PIL import Image, ImageOps, ImageDraw
 import os
 import time
+import json
+from detect_USB import start_usb_detection_thread
 from proto_crypto import *
 import threading
 import traceback
-
+import state
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
@@ -33,7 +35,7 @@ class Sidebar(ctk.CTkFrame):
             ("Verify", "verify"),
             ("Encrypt", "encrypt"),
             ("Decrypt", "decrypt"),
-            ("Settings", "settings"),
+            # ("Settings", "settings"),
             ("Benchmarks", "benchmarks"),
             ("Help", "help"),
             ("Authors", "authors"),
@@ -88,34 +90,90 @@ class TopBar(ctk.CTkFrame):
 
 
 class StatusBar(ctk.CTkFrame):
-    def __init__(self, master):
+    def __init__(self, master, verify_callback):
         super().__init__(master, height=38, corner_radius=0)
+        self.verify_callback = verify_callback
         self.grid_propagate(False)
 
         self.items = {
-            "usb": ctk.CTkLabel(self, text="USB: Not connected", text_color="#a1a1aa"),
-            "pub": ctk.CTkLabel(self, text="Public key: None", text_color="#a1a1aa"),
-            "priv": ctk.CTkLabel(self, text="Private key: Locked", text_color="#a1a1aa"),
-            "algo": ctk.CTkLabel(self, text="Algo: Dilithium3", text_color="#a1a1aa"),
+            "usb":  ctk.CTkLabel(self, text="USB: Not connected", text_color="#a1a1aa"),
+            "pub":  ctk.CTkLabel(self, text="Public key: None",  text_color="#a1a1aa"),
+            "priv": ctk.CTkLabel(self, text="Private key: None", text_color="#a1a1aa"),
+            "algo": ctk.CTkLabel(self, text="Algo: Not Detected", text_color="#a1a1aa")
         }
 
+        # grid labels in spaced columns
+        self.items["usb"].grid( row=0, column=0, padx=10, pady=6, sticky="w")
+        self.items["pub"].grid( row=0, column=1, padx=10, pady=6, sticky="w")
+        self.items["priv"].grid(row=0, column=3, padx=10, pady=6, sticky="w")
+        self.items["algo"].grid(row=0, column=5, padx=10, pady=6, sticky="w")
 
-        for i, (k, widget) in enumerate(self.items.items()):
-            widget.grid(row=0, column=i, padx=10, pady=6)
+        # small frames for the button groups
+        self.pub_btn_frame  = ctk.CTkFrame(self, fg_color="transparent")
+        self.priv_btn_frame = ctk.CTkFrame(self, fg_color="transparent")
 
+        self.pub_btn_frame.grid( row=0, column=2, padx=(2, 10))
+        self.priv_btn_frame.grid(row=0, column=4, padx=(2, 10))
+
+        # public key buttons
+        self.btn_pub_down = ctk.CTkButton(self.pub_btn_frame, text="<", width=22, height=22,
+                                          command=self.decrease_public)
+        self.btn_pub_down.pack(side="left", padx=2)
+
+        self.btn_pub_up = ctk.CTkButton(self.pub_btn_frame, text=">", width=22, height=22,
+                                        command=self.increase_public)
+        self.btn_pub_up.pack(side="left", padx=2)
+
+        # private key buttons
+        self.btn_priv_down = ctk.CTkButton(self.priv_btn_frame, text="<", width=22, height=22,
+                                           command=self.decrease_private)
+        self.btn_priv_down.pack(side="left", padx=2)
+
+        self.btn_priv_up = ctk.CTkButton(self.priv_btn_frame, text=">", width=22, height=22,
+                                         command=self.increase_private)
+        self.btn_priv_up.pack(side="left", padx=2)
+
+
+        self.verify = ctk.CTkButton(self.priv_btn_frame, text="Verify", width=70, height=22, command=self.verify_callback)
+        self.verify.pack(side="left", padx=2)
+
+    # ---------- Handlers for modification ----------
+    def increase_public(self):
+        state.skip_public_key += 1
+        print("Increase public key skip:", state.skip_public_key)
+
+    def decrease_public(self):
+        state.skip_public_key = max(0, state.skip_public_key - 1)
+        print("Decrease public key skip:", state.skip_public_key)
+
+    def increase_private(self):
+        state.skip_private_key += 1
+        print("Increase private key skip:", state.skip_private_key)
+
+    def decrease_private(self):
+        state.skip_private_key = max(0, state.skip_private_key - 1)
+        print("Decrease private key skip:", state.skip_private_key)
+
+    # ---------- Your original update helpers ----------
     def update_item(self, key, text):
         self.items[key].configure(text=text)
 
-    def set_private_key_status(self, unlocked: bool):
+    def set_private_key_status(self, unlocked: bool, path: str=None):
         if unlocked:
-            self.items["priv"].configure(text="Private key: Unlocked ✓", text_color="#22d3ee")
+            self.items["priv"].configure(text=f"Private key: Unlocked {path}", text_color="#22d3ee")
         else:
-            self.items["priv"].configure(text="Private key: Locked 🔒", text_color="#eab308")
+            self.items["priv"].configure(text=f"Private key: Locked {path} 🔒 ", text_color="#eab308")
+
+    def set_public_key_loaded(self, filename: str):
+        self.items["pub"].configure(
+            text=f"Public key: {filename}",
+            text_color="#22d3ee"
+        )
 
     def set_usb_status(self, connected: bool, path=None):
         if connected:
             self.items["usb"].configure(
-                text=f"USB: Connected({path})",
+                text=f"USB: Connected",
                 text_color="#22ee66"
             )
         else:
@@ -123,6 +181,43 @@ class StatusBar(ctk.CTkFrame):
                 text="USB: Not connected",
                 text_color="#a81351"
             )
+
+
+class MaskedInputDialog(ctk.CTkToplevel):
+    def __init__(self, title="Input", text=""):
+        super().__init__()
+        self.title(title)
+
+        self.label = ctk.CTkLabel(self, width=300, fg_color="transparent", text=text)
+        self.label.pack(padx=20, pady=(20, 10))
+
+        self.entry = ctk.CTkEntry(self, width=300, show="*")
+        self.entry.pack(padx=20, pady=(0, 20))
+        self.entry.focus()
+
+        self.ok_button = ctk.CTkButton(self, width=120, text="Ok", command=self._ok_event)
+        self.ok_button.pack(pady=(0, 20))
+
+        self.protocol("WM_DELETE_WINDOW", self._cancel_event)
+        self.bind("<Return>", self._ok_event)
+        self.bind("<Escape>", self._cancel_event)
+        self.resizable(False, False)
+
+        self.grab_set()
+        self.lift()
+        self.input = None
+        self.wait_window()
+
+    def _ok_event(self, event=None):
+        self.input = self.entry.get()
+        self.destroy()
+
+    def _cancel_event(self, event=None):
+        self.input = None
+        self.destroy()
+
+    def get_input(self):
+        return self.input
 
 
 # ------------------------------
@@ -258,11 +353,11 @@ class KeysPage(ctk.CTkFrame):
 
         self.kyber_modes_frame.pack_forget()
 
-        ctk.CTkLabel(panel, text="PIN").pack(pady=4)
+        ctk.CTkLabel(panel, text="Passphrase").pack(pady=4)
         self.pin1 = ctk.CTkEntry(panel, show="*")
         self.pin1.pack(pady=4)
 
-        ctk.CTkLabel(panel, text="Confirm PIN").pack(pady=4)
+        ctk.CTkLabel(panel, text="Confirm Passphrase").pack(pady=4)
         self.pin2 = ctk.CTkEntry(panel, show="*")
         self.pin2.pack(pady=4)
 
@@ -318,8 +413,10 @@ class KeysPage(ctk.CTkFrame):
                     f.write(algo.encode() + b' ' + pub)
 
                 # 5. Write the PRIVATE key (.key)
+                encrypted_priv = encrypt_private_key(priv, pin1)
+
                 with open(priv_path, "wb") as f:
-                    f.write(algo.encode() + b' ' + priv)
+                    f.write(algo.encode() + b' ' + encrypted_priv)
 
                 # 6. Update UI
                 self.message_label.configure(
@@ -334,7 +431,12 @@ class KeysPage(ctk.CTkFrame):
 class SignPage(ctk.CTkFrame):
     def __init__(self, master):
         super().__init__(master)
+        self.app = master
         self.file_path = None
+        self.key_path = None
+        self.algorithm = None
+        self.encrypted_key = None   # zaszyfrowany klucz z pliku
+        self.private_key = None
         self.build()
 
     def choose_file(self):
@@ -344,39 +446,69 @@ class SignPage(ctk.CTkFrame):
             self.file_label.configure(text=os.path.basename(path))
 
     def choose_key(self):
+        """
+        Ręczne wybranie klucza prywatnego z pliku .key
+        – zapisujemy zaszyfrowany klucz i pokazujemy pole Passphrase.
+        """
         path = tk.filedialog.askopenfilename(
-                filetypes=[("Pub Files", ".key"), ("All Files", "*.*")],
-                title="Select Key File"
-            )
+            filetypes=[("Private key", ".key"), ("All Files", "*.*")],
+            title="Select Key File"
+        )
         if path:
             with open(path, "rb") as f:
                 key = f.read()
+
             self.key_path = path
-            self.algorithm, self.private_key = key.split(b' ', 1)
-            self.algorithm = self.algorithm.decode()
-            self.key_label.configure(text=f"Key file: {os.path.basename(path)}\nUsing {self.algorithm} algorithm") 
+            algo_bytes, encrypted = key.split(b" ", 1)
+            self.algorithm = algo_bytes.decode()
+            self.encrypted_key = encrypted   # odszyfrujemy dopiero przy Sign
+
+            self.key_label.configure(
+                text=f"Key file: {os.path.basename(path)}\nUsing {self.algorithm} algorithm",
+                text_color="#22d3ee"
+            )
+
+            # pokaż Passphrase tylko dla klucza z pliku
+            self.passphrase_label.pack(pady=8)
+            self.passphrase_entry.pack()
+            self.passphrase_entry.delete(0, "end")
 
     def sign_file(self):
         if not self.file_path:
             self.message.configure(text="Musisz wybrać plik!", text_color="#f87171")
             return
 
-        if not self.key_path:
-            self.message.configure(text="Musisz wybrać klucz prywatny!\nJeśli go nie masz - wygeneruj go w zakładce Keys.", text_color="#f87171")
-            return
-        
-        pin = self.pin_entry.get()
+        # 1. Priorytet: klucz z USB, jeśli odblokowany
+        if self.app.key_unlocked and self.app.private_key_bytes:
+            self.private_key = self.app.private_key_bytes
+            self.algorithm = self.app.usb_algorithm
 
-        if not pin:
-            self.message.configure(text="PIN jest wymagany!", text_color="#f87171")
+        # 2. Jeśli nie ma USB – używamy klucza z pliku .key
+        elif self.encrypted_key is not None:
+            pin = self.passphrase_entry.get()
+            if not pin:
+                self.message.configure(text="Passphrase jest wymagany!", text_color="#f87171")
+                return
+
+            try:
+                self.private_key = decrypt_private_key(self.encrypted_key, pin)
+            except Exception as e:
+                self.message.configure(text=f"Niepoprawny passphrase: {e}", text_color="#f87171")
+                return
+
+        else:
+            self.message.configure(
+                text="Musisz odblokować klucz z USB lub wybrać plik .key!",
+                text_color="#f87171"
+            )
             return
 
+        # --- wykonanie podpisu ---
         with open(self.file_path, "rb") as f:
             content = f.read()
 
         signature = proto_sign(self.algorithm, content, self.private_key)
 
-        # Save signature
         basename = os.path.basename(self.file_path)
         name, ext = os.path.splitext(basename)
         proposed = f"{name}_sign{ext}"
@@ -410,21 +542,33 @@ class SignPage(ctk.CTkFrame):
         self.file_label = ctk.CTkLabel(panel, text="No file selected", text_color="#94a3b8")
         self.file_label.pack(pady=4)
 
-        # Algorithm
+        # Private key selection
         ctk.CTkLabel(panel, text="Select Private Key file (.key)").pack(pady=6)
         ctk.CTkButton(panel, text="Choose file", command=self.choose_key).pack()
         self.key_label = ctk.CTkLabel(panel, text="No file selected", text_color="#94a3b8")
         self.key_label.pack(pady=4)
 
-        # PIN
-        ctk.CTkLabel(panel, text="PIN").pack(pady=8)
-        self.pin_entry = ctk.CTkEntry(panel, show="*")
-        self.pin_entry.pack()
+        # Passphrase – na start UKRYTE (tworzymy, ale nie pakujemy)
+        self.passphrase_label = ctk.CTkLabel(panel, text="Passphrase")
+        self.passphrase_entry = ctk.CTkEntry(panel, show="*")
 
         ctk.CTkButton(panel, text="Sign Document", command=self.sign_file).pack(pady=14)
 
         self.message = ctk.CTkLabel(self, text="", font=("Segoe UI", 13, "bold"))
         self.message.pack(pady=10)
+
+    def refresh_usb_state(self):
+        """
+        Wywoływane, gdy klucz z USB zostanie wykryty / odblokowany.
+        Jeśli USB jest aktywny – ukrywamy Passphrase (bo używamy tokena).
+        """
+        if self.app.key_unlocked and self.app.private_key_bytes:
+            self.key_label.configure(
+                text=f"Using USB key ({self.app.usb_algorithm})",
+                text_color="#22d3ee"
+            )
+            self.passphrase_label.pack_forget()
+            self.passphrase_entry.pack_forget()
 
 
 class VerifyPage(ctk.CTkFrame):
@@ -513,7 +657,7 @@ class VerifyPage(ctk.CTkFrame):
         if self.algorithm != self.key_algorithm:
             self.message.configure(text="Algorytm klucza nie pasuje do algorytmu podpisanego pliku!", text_color="#f87171")
             return
-
+        
         result = proto_verify(self.algorithm, self.content, self.signature, self.public_key)
 
         if result:
@@ -576,10 +720,17 @@ class EncryptPage(ctk.CTkFrame):
             self.message.configure(text="Musisz wybrać plik i klucz!", text_color="#f87171")
             return
 
+        if self.algorithm not in ENCRYPTION_ALGORITHMS:
+            self.message.configure(text="Wybrany klucz nie jest algorytmem szyfrujacym.", text_color="#f87171")
+            return
+
         content = open(self.file_path, "rb").read()
         #private_key = open(self.key_path, "r", errors="ignore").read()
 
         encrypted = proto_encrypt(self.algorithm, content, self.public_key)
+        if encrypted is None:
+            self.message.configure(text="Blad szyfrowania - sprawdz klucz i algorytm.", text_color="#f87171")
+            return
 
         basename = os.path.basename(self.file_path)
         name, ext = os.path.splitext(basename)
@@ -624,28 +775,49 @@ class DecryptPage(ctk.CTkFrame):
     def __init__(self, master):
         super().__init__(master)
         self.file_path = None
+        self.key_path = None
+        self.private_key = None
+        self.json_algorithm = None
+        self.ciphertext = None
+        self.nonce = None
+        self.aes_payload = None
+        self.app = master
         self.build()
+
+    def refresh_usb_state(self):
+        if self.app.key_unlocked and self.app.private_key_bytes:
+            self.key_label.configure(
+                text=f"Using USB key ({self.app.usb_algorithm})",
+                text_color="#22d3ee"
+            )
 
     def choose_encrypted(self):
         path = tk.filedialog.askopenfilename()
         if path:
             self.file_path = path
             self.file_label.configure(text=os.path.basename(path))
-            with open(self.file_path, "rb") as f:
-                encrypted_json = f.read()
+            try:
+                with open(self.file_path, "rb") as f:
+                    encrypted_json = f.read()
 
-        try:
-            packet = json.loads(encrypted_json)
-        except Exception as e:
-            raise ValueError(f"Plik nie jest poprawnym jsonem: {e}")
-        
-        try:
-            self.json_algorithm = packet["algorithm"]
-            self.ciphertext = bytes.fromhex(packet["kem_ciphertex"])
-            self.nonce = bytes.fromhex(packet["aes_nonce"])
-            self.aes_payload = bytes.fromhex(packet["aes_payload"])
-        except Exception as e:
-            raise ValueError(f"Plik nie posiada odpowiednich skladnikow: {e}")
+                packet = json.loads(encrypted_json)
+                self.json_algorithm = packet["algorithm"]
+                self.ciphertext = bytes.fromhex(packet["kem_ciphertex"])
+                self.nonce = bytes.fromhex(packet["aes_nonce"])
+                self.aes_payload = bytes.fromhex(packet["aes_payload"])
+                self.message.configure(
+                    text=f"Wczytano pakiet dla algorytmu {self.json_algorithm}",
+                    text_color="#22d3ee"
+                )
+            except Exception as e:
+                self.json_algorithm = None
+                self.ciphertext = None
+                self.nonce = None
+                self.aes_payload = None
+                self.message.configure(
+                    text=f"Blad pliku: {e}",
+                    text_color="#f87171"
+                )
 
     def choose_key(self):
         path = tk.filedialog.askopenfilename(
@@ -656,20 +828,82 @@ class DecryptPage(ctk.CTkFrame):
             with open(path, "rb") as f:
                 key = f.read()
             self.key_path = path
-            self.algorithm, self.private_key = key.split(b' ', 1)
+            self.algorithm, encrypted = key.split(b' ', 1)
             self.algorithm = self.algorithm.decode()
+
+            pin = MaskedInputDialog(title="Unlock key", text="Enter passphrase:").get_input()
+            if not pin:
+                self.message.configure(text="Anulowano odblokowanie klucza.", text_color="#f87171")
+                return
+
+            try:
+                self.private_key = decrypt_private_key(encrypted, pin)
+            except Exception as e:
+                self.message.configure(text=f"Nie udalo sie odblokowac klucza: {e}", text_color="#f87171")
+                return
+
             self.key_label.configure(text=f"Key file: {os.path.basename(path)}\nUsing {self.algorithm} algorithm")
 
     def decrypt_file(self):
-        if not self.file_path or not self.key_path:
-            self.message.configure(text="Musisz wybrać zaszyfrowany plik i klucz!", text_color="#f87171")
+        if not self.file_path:
+            self.message.configure(
+                text="Musisz wybrać zaszyfrowany plik!",
+                text_color="#f87171"
+            )
             return
-        
+
+        # 2. Determine PRIVATE KEY SOURCE
+        # --------------------------------
+        # Jeśli klucz z USB jest odblokowany -> użyj go
+        if self.app.key_unlocked and self.app.private_key_bytes:
+            self.private_key = self.app.private_key_bytes
+            self.algorithm = self.app.usb_algorithm
+
+            self.key_label.configure(
+                text=f"Using USB key ({self.algorithm})",
+                text_color="#22d3ee"
+            )
+
+        elif not getattr(self, "key_path", None):
+            self.message.configure(
+                text="Musisz wybrać prywatny klucz lub odblokować USB key!",
+                text_color="#f87171"
+            )
+            return
+
+
+        if not all([self.json_algorithm, self.ciphertext, self.nonce, self.aes_payload]):
+            self.message.configure(
+                text="Najpierw wybierz poprawny zaszyfrowany plik.",
+                text_color="#f87171"
+            )
+            return
+
+        # 3. Sprawdzenie czy algorytm pliku zgadza się z algorytmem klucza
         if self.json_algorithm != self.algorithm:
-            raise ValueError(f"Algorytm ktorym zakodowany jest plik nie zgadza sie z algorytmem klucza")
+            self.message.configure(
+                text="Algorytm pliku nie pasuje do algorytmu klucza!",
+                text_color="#f87171"
+            )
+            return
 
 
-        decrypted = proto_decrypt(self.algorithm, self.ciphertext, self.nonce, self.aes_payload, self.private_key)
+        try:
+            # 4. Właściwe odszyfrowanie (Kyber KEM + AES-GCM)
+            decrypted = proto_decrypt(
+                self.algorithm,
+                self.ciphertext,
+                self.nonce,
+                self.aes_payload,
+                self.private_key
+            )
+        except Exception as e:
+            self.message.configure(
+                text=f"Błąd odszyfrowania: {e}",
+                text_color="#f87171"
+            )
+            return
+
 
         basename = os.path.basename(self.file_path)
         name, ext = os.path.splitext(basename)
@@ -679,6 +913,7 @@ class DecryptPage(ctk.CTkFrame):
             defaultextension=ext,
             initialfile=proposed
         )
+
         if save_path:
             with open(save_path, "wb") as f:
                 f.write(decrypted)
@@ -709,24 +944,24 @@ class DecryptPage(ctk.CTkFrame):
         self.message.pack(pady=10)
 
 
-class SettingsPage(ctk.CTkFrame):
-    def __init__(self, master):
-        super().__init__(master)
-        self.build()
+# class SettingsPage(ctk.CTkFrame):
+#     def __init__(self, master):
+#         super().__init__(master)
+#         self.build()
 
-    def build(self):
-        ctk.CTkLabel(self, text="Settings",
-                     font=("Segoe UI", 18, "bold")).pack(pady=10)
+#     def build(self):
+#         ctk.CTkLabel(self, text="Settings",
+#                      font=("Segoe UI", 18, "bold")).pack(pady=10)
 
-        panel = ctk.CTkFrame(self, corner_radius=12)
-        panel.pack(pady=10, padx=20, fill="both")
+#         panel = ctk.CTkFrame(self, corner_radius=12)
+#         panel.pack(pady=10, padx=20, fill="both")
 
-        ctk.CTkLabel(panel, text="Signature Algorithms").pack(pady=6)
-        for alg in SIGNATURE_ALGORITHMS.keys():
-            ctk.CTkCheckBox(panel, text=alg).pack()
+#         ctk.CTkLabel(panel, text="Signature Algorithms").pack(pady=6)
+#         for alg in SIGNATURE_ALGORITHMS.keys():
+#             ctk.CTkCheckBox(panel, text=alg).pack()
 
-        ctk.CTkLabel(panel, text="Default").pack(pady=10)
-        ctk.CTkOptionMenu(panel, values=list(SIGNATURE_ALGORITHMS.keys())).pack()
+#         ctk.CTkLabel(panel, text="Default").pack(pady=10)
+#         ctk.CTkOptionMenu(panel, values=list(SIGNATURE_ALGORITHMS.keys())).pack()
 
 class BenchmarkPage(ctk.CTkFrame):
     def __init__(self, master):
@@ -1039,7 +1274,8 @@ class PQApp(ctk.CTk):
         self.private_key_bytes = None
         self.usb_algorithm = None
         self.key_unlocked = False
-
+        self.public_key_bytes = None
+        self.public_key_path = None
 
         # GRID LAYOUT
         self.grid_columnconfigure(1, weight=1)  
@@ -1064,7 +1300,7 @@ class PQApp(ctk.CTk):
             "verify": VerifyPage(self),
             "encrypt": EncryptPage(self),
             "decrypt": DecryptPage(self),
-            "settings": SettingsPage(self),
+            # "settings": SettingsPage(self),
             "benchmarks": BenchmarkPage(self),
             "help": HelpPage(self),
             "authors": AuthorsPage(self),
@@ -1078,8 +1314,10 @@ class PQApp(ctk.CTk):
         self.switch_page("dashboard")
 
         # STATUS BAR
-        self.statusbar = StatusBar(self)
+        self.statusbar = StatusBar(self, self.prompt_unlock_pin)
         self.statusbar.grid(row=2, column=1, sticky="sew")
+        self.check_usb_event()
+
 
     def switch_page(self, page):
         for p in self.pages.values():
@@ -1096,7 +1334,7 @@ class PQApp(ctk.CTk):
             "verify": ("Verify", "Check authenticity and integrity."),
             "encrypt": ("Encrypt", "Encrypt files using Kyber."),
             "decrypt": ("Decrypt", "Decrypt with USB private key."),
-            "settings": ("Settings", "Algorithms & configuration."),
+            # "settings": ("Settings", "Algorithms & configuration."),
             "benchmarks": ("Benchmarks", "Benchmark avaliable algorithms."),
             "help": ("Help", "Guides and troubleshooting."),
             "authors": ("Authors", "Team that created this project."),
@@ -1106,26 +1344,76 @@ class PQApp(ctk.CTk):
         self.topbar.update(t, d)
 
     def check_usb_event(self):
-        import globals
+        import state
+        import os
 
-        if globals.usb_detected_event.is_set():
-            detection = globals.usb_path_queue.get()
-            path, algo, key_bytes = detection
+        if state.usb_detected_event.is_set():
+            detection = state.usb_path_queue.get()
 
-            self.usb_key_path = path
-            self.usb_algorithm = algo
-            self.private_key_bytes = key_bytes
-            self.key_unlocked = False
+            try:
+                key_type, path, algo, key_bytes = detection
+            except ValueError:
+                print("[USB WARNING] Unexpected detection format:", detection)
+                state.usb_detected_event.clear()
+                self.after(1000, self.check_usb_event)
+                return
 
-            self.statusbar.set_usb_status(True, path)
-            self.statusbar.update_item("algo", f"Algo: {algo}")
-            self.statusbar.set_private_key_status(False)  # show Locked
+            if key_type == "private":
+                self.private_key_path = path
+                self.usb_algorithm = algo
+                self.private_key_bytes = key_bytes
+                self.key_unlocked = False
+
+                self.statusbar.set_usb_status(True, path)
+                self.statusbar.update_item("algo", f"Algo: {algo}")
+                self.statusbar.set_private_key_status(False, path)
+                self.pages["sign"].refresh_usb_state()
+                self.pages["decrypt"].refresh_usb_state()
+
+
+            elif key_type == "public":
+                self.public_key_path = path
+                self.public_key_bytes = key_bytes
+                filename = os.path.basename(path)
+                self.statusbar.set_public_key_loaded(filename)
+
+            state.usb_detected_event.clear()
+
         self.after(1000, self.check_usb_event)
 
+
+    def clear_public_key(self):
+        self.items["pub"].configure(
+            text="Public key: None",
+            text_color="#a1a1aa"
+        )
+
+    def prompt_unlock_pin(self):
+        dialog = MaskedInputDialog(
+            title="Unlock private key",
+            text="Podaj Passphrase, aby odblokować klucz prywatny z USB:"
+        )
+        passphrase = dialog.get_input()
+
+        if passphrase:
+            try:
+                decrypted = decrypt_private_key(self.private_key_bytes, passphrase)
+                self.private_key_bytes = decrypted
+                self.key_unlocked = True
+                self.statusbar.set_private_key_status(True, self.private_key_path)
+                self.pages["sign"].refresh_usb_state()
+                self.pages["decrypt"].refresh_usb_state()
+            except Exception:
+                self.key_unlocked = False
+                self.statusbar.set_private_key_status(False, self.private_key_path)
+        else:
+            self.key_unlocked = False
+            self.statusbar.set_private_key_status(False,self.private_key_path)
 
     
 
 
 if __name__ == "__main__":
+    start_usb_detection_thread()
     app = PQApp()
     app.mainloop()
