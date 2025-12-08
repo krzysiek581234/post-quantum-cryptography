@@ -229,6 +229,24 @@ class DashboardPage(ctk.CTkFrame):
         super().__init__(master)
         self.build()
 
+    # ---------- Hover Animation ----------
+    def add_hover_effect(self, widget):
+        def on_enter(event):
+            widget.configure(
+                fg_color=("#2a3a50", "#32475f"),  # jaśniejszy gradient
+                border_width=2
+            )
+
+        def on_leave(event):
+            widget.configure(
+                fg_color=("#1e2836", "#19202b"),  # bazowy gradient
+                border_width=0
+            )
+
+        widget.bind("<Enter>", on_enter)
+        widget.bind("<Leave>", on_leave)
+
+    # ---------- UI Build ----------
     def build(self):
         title = ctk.CTkLabel(
             self,
@@ -238,8 +256,8 @@ class DashboardPage(ctk.CTkFrame):
         title.pack(pady=20)
 
         desc = (
-            "Witaj w aplikacji chroniącej dane przed erą komputerów kwantowych.\n"
-            "Poniżej znajdziesz krótkie wyjaśnienie stosowanych algorytmów:"
+            "Witaj w świecie kryptografii post-kwantowej.\n"
+            "Poniższe kafelki przedstawiają kluczowe algorytmy stosowane w aplikacji."
         )
 
         ctk.CTkLabel(
@@ -250,70 +268,93 @@ class DashboardPage(ctk.CTkFrame):
             justify="center"
         ).pack(pady=10)
 
-        container = ctk.CTkFrame(self, fg_color="transparent")
-        container.pack(pady=15, padx=40, fill="both", expand=True)
+        # === Scrollable wrapper for cards ===
+        scroll_frame = ctk.CTkScrollableFrame(
+            self,
+            fg_color="transparent",
+            width=1500,
+            height=700  # dostosuj pod rozdzielczość
+        )
+        scroll_frame.pack(padx=40, pady=10, fill="both", expand=True)
+
+        scroll_frame.grid_columnconfigure(0, weight=1)
+        scroll_frame.grid_columnconfigure(1, weight=1)
 
         algorithms = [
             ("Kyber",
-             "Algorytm KEM służący do bezpiecznej wymiany kluczy. "
-             "Pozwala ustalić wspólny sekret do szyfrowania danych.\n\n"
-             "Operacje w aplikacji:\n"
-             "- generowanie kluczy,\n"
-             "- enkapsulacja (tworzenie sekretu),\n"
-             "- dekapsulacja,\n"
-             "- szyfrowanie/odszyfrowanie pliku.\n"),
+             "Rodzina algorytmów wymiany kluczy (KEM) zatwierdzona przez NIST.\n\n"
+             "Służy do ustalania wspólnego sekretu i pełni rolę fundamentu szyfrowania w aplikacji.\n\n"
+             "Tryby:\n"
+             "- Kyber512 — szybki, lekki.\n"
+             "- Kyber768 — zalecany przez NIST.\n"
+             "- Kyber1024 — dla systemów wysokiego ryzyka.\n\n"
+             "W praktyce Kyber tworzy wspólny sekret AES-GCM i weryfikuje tożsamości komunikacji."),
 
             ("Dilithium",
-             "Standard NIST dla podpisów cyfrowych. Zapewnia autentyczność i "
-             "integralność danych.\n\n"
-             "Operacje w aplikacji:\n"
-             "- generowanie kluczy,\n"
-             "- podpis pliku,\n"
-             "- weryfikacja podpisu.\n"),
+             "Standard NIST dla podpisów cyfrowych.\n"
+             "Zapewnia autentyczność danych i wiarygodność nadawcy.\n"
+             "Stabilny, odporny, stosowany w podpisach dokumentów i certyfikacji."),
+
+            ("Falcon",
+             "Lekki algorytm podpisu.\n"
+             "Minimalny rozmiar klucza i sygnatury — świetny dla IoT.\n\n"
+             "Idealny dla systemów o niskiej mocy obliczeniowej."),
 
             ("Picnic",
-             "Podpis wykorzystujący zero-knowledge proofs. Chroni prywatność i "
-             "jest odporny na ataki kwantowe.\n\n"
-             "Operacje w aplikacji:\n"
-             "- generowanie kluczy,\n"
-             "- podpis pliku,\n"
-             "- weryfikacja podpisu.\n"),
+             "Podpis oparty na zero-knowledge proofs — udowadnia autentyczność bez ujawniania sekretu.\n"
+             "Stosowany w blockchainie, systemach prywatności i e-tożsamości."),
+
+            ("Cross",
+             "Podpis oparty na strukturach permutacyjnych.\n"
+             "Cechuje go szybka weryfikacja i odporność konstrukcyjna.\n"
+             "Przewidziany do zastosowań serwerowych."),
 
             ("XMSS",
-             "Hash-based signature system z limitem użycia klucza. Wyjątkowo "
-             "bezpieczny i stabilny.\n\n"
-             "Operacje w aplikacji:\n"
-             "- generowanie klucza z ograniczoną liczbą podpisów,\n"
-             "- podpis pliku,\n"
-             "- weryfikacja podpisu.\n"),
+             "Hash-based signature o wyjątkowej odporności na ataki.\n"
+             "Każdy klucz ma ograniczoną pulę podpisów.\n"
+             "Świetny do firmware'u i aktualizacji systemowych."),
 
             ("SPHINCS+",
-             "Hash-based podpis bez limitu użycia. Bardzo odporny na ataki "
-             "post-kwantowe.\n\n"
-             "Operacje w aplikacji:\n"
-             "- generowanie kluczy,\n"
-             "- podpis pliku,\n"
-             "- weryfikacja podpisu.\n")
+             "Hash-based podpis bez limitu użyć.\n"
+             "Wolniejszy niż XMSS, ale wszechstronny i odporny na kwanty.\n"
+             "Nadaje się do podpisów długoterminowych i dokumentowych.")
         ]
 
-        for name, text in algorithms:
-            card = ctk.CTkFrame(container, corner_radius=12)
-            card.pack(fill="x", pady=6)
+        # === Create cards in 2-column layout ===
+        for i, (name, text) in enumerate(algorithms):
+            row = i // 2
+            col = i % 2
 
+            card = ctk.CTkFrame(
+                scroll_frame,
+                corner_radius=14,
+                fg_color=("#1e2836", "#19202b")  # gradient bazowy
+            )
+            card.grid(row=row, column=col, padx=14, pady=12, sticky="nsew")
+
+            card.configure(height=260)
+            card.grid_propagate(False)
+
+            # Hover animation attach
+            self.add_hover_effect(card)
+
+            # Title
             ctk.CTkLabel(
                 card,
                 text=name,
-                font=("Segoe UI", 17, "bold")
-            ).pack(anchor="w", padx=14, pady=(8, 0))
+                font=("Segoe UI", 20, "bold")
+            ).pack(anchor="w", padx=16, pady=(12, 4))
 
+            # Description
             ctk.CTkLabel(
                 card,
                 text=text,
-                wraplength=900,
+                wraplength=480,
                 justify="left",
-                text_color="#94a3b8",
+                text_color="#b0beca",
                 font=("Segoe UI", 13)
-            ).pack(anchor="w", padx=14, pady=(2, 10))
+            ).pack(anchor="nw", padx=16, pady=(4, 12), fill="both", expand=True)
+
 
 
 class KeysPage(ctk.CTkFrame):
@@ -1256,7 +1297,7 @@ class AuthorsPage(ctk.CTkFrame):
         authors = [
             ("Krzysztof Madajczak", os.path.join("img", "KM.jpeg"),
              "GUI, architecture & core logic."),
-            ("Julia Sadecka", os.path.join("img", "JS.jpeg"),
+            ("Julia Sadecka", os.path.join("img", "JS.jpg"),
              "Kyber algorithm & design concepts."),
             ("Jakub Młocek", os.path.join("img", "JM.jpeg"),
              "Picnic & XMSS implementation."),
