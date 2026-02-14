@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PQ-Crypto App — Post-Quantum Cryptography Desktop Application</title>
+  <meta name="description" content="PQ-Crypto App: key generation, digital signatures, verification, hybrid encryption (Kyber + AES-GCM), USB key detection, and benchmarks." />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <header class="site-header">
+    <div class="container header-grid">
+      <div>
+        <span class="badge">Post-Quantum Cryptography</span>
+        <h1>PQ-Crypto App</h1>
+        <p class="subtitle">
+          Desktop application for practical use of post-quantum cryptography:
+          key generation, digital signatures, verification, and hybrid file encryption.
+        </p>
+
+        <div class="cta-row">
+          <a class="btn primary" href="#features">See features</a>
+          <a class="btn" href="#screenshots">Screenshots</a>
+          <a class="btn" href="#installation">Installation</a>
+        </div>
+
+        <div class="pill-row" aria-label="Tech stack">
+          <span class="pill">Python</span>
+          <span class="pill">liboqs</span>
+          <span class="pill">customtkinter</span>
+          <span class="pill">Kyber + AES-GCM</span>
+          <span class="pill">Dilithium / Falcon / SPHINCS+</span>
+        </div>
+      </div>
+
+      <div class="hero-card" role="img" aria-label="Application screenshot preview">
+        <img src="../img/p5.png" alt="PQ-Crypto App — Encrypt screen" class="zoomable" />
+        <p class="caption">Hybrid encryption (Kyber + AES-GCM) — Encrypt view</p>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section id="features" class="section">
+      <div class="container">
+        <h2>What the app does</h2>
+        <div class="grid-3">
+          <article class="card">
+            <h3>Key generation</h3>
+            <p>Generate post-quantum key pairs (public/private) with passphrase protection.</p>
+          </article>
+          <article class="card">
+            <h3>Digital signatures</h3>
+            <p>Sign files and verify signatures using post-quantum signature schemes.</p>
+          </article>
+          <article class="card">
+            <h3>Hybrid encryption</h3>
+            <p>Encrypt and decrypt files using Kyber (KEM) + AES-GCM (data encryption).</p>
+          </article>
+          <article class="card">
+            <h3>USB key detection</h3>
+            <p>Automatically detect <code>.pub</code> and <code>.key</code> files on removable storage.</p>
+          </article>
+          <article class="card">
+            <h3>Benchmarks</h3>
+            <p>Compare algorithm performance: keygen, signing/verifying, encrypt/decrypt.</p>
+          </article>
+          <article class="card">
+            <h3>Algorithm auto-detection</h3>
+            <p>File headers help detect which algorithm should be used for a given operation.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="algorithms" class="section alt">
+      <div class="container">
+        <h2>Supported algorithms</h2>
+
+        <div class="grid-2">
+          <div class="card">
+            <h3>Encryption</h3>
+            <ul>
+              <li><strong>Kyber</strong> (Kyber512 / Kyber768 / Kyber1024) — post-quantum KEM</li>
+              <li><strong>AES-GCM</strong> — symmetric authenticated encryption for file contents</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <h3>Digital signatures</h3>
+            <ul>
+              <li><strong>Dilithium (ML-DSA)</strong></li>
+              <li><strong>Falcon</strong></li>
+              <li><strong>SPHINCS++</strong></li>
+              <li><strong>Cross</strong> (experimental)</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="note">
+          <strong>Note:</strong> This is an educational / research project showcasing practical usage of PQC algorithms.
+        </div>
+      </div>
+    </section>
+
+    <section id="screenshots" class="section">
+      <div class="container">
+        <h2>Screenshots</h2>
+        <p class="subtitle">Selected views from the application UI.</p>
+
+        <div class="gallery">
+          <figure class="shot">
+            <img src="../img/p2.png" alt="Key generation screen" class="zoomable"/>
+            <figcaption>Key generation</figcaption>
+          </figure>
+
+          <figure class="shot">
+            <img src="../img/p3.png" alt="Sign document screen" class="zoomable"/>
+            <figcaption>Sign document</figcaption>
+          </figure>
+
+          <figure class="shot">
+            <img src="../img/p4.png" alt="Verify signature screen" class="zoomable"/>
+            <figcaption>Verify signature</figcaption>
+          </figure>
+
+          <figure class="shot">
+            <img src="../img/p5.png" alt="Encrypt file screen" class="zoomable"/>
+            <figcaption>Encrypt file</figcaption>
+          </figure>
+
+          <figure class="shot">
+            <img src="../img/p6.png" alt="Decrypt file screen" class="zoomable"/>
+            <figcaption>Decrypt file</figcaption>
+          </figure>
+
+          <figure class="shot">
+            <img src="../img/p1.png" alt="System architecture diagram" class="zoomable"/>
+            <figcaption>System architecture</figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <section id="installation" class="section alt">
+      <div class="container">
+        <h2>Installation (short)</h2>
+        <p class="subtitle">
+          This project uses <strong>liboqs</strong> via <strong>liboqs-python</strong>.
+        </p>
+
+        <div class="card">
+          <h3>Install liboqs-python</h3>
+          <pre><code>git clone --depth=1 https://github.com/open-quantum-safe/liboqs-python
+cd liboqs-python
+pip install .</code></pre>
+
+          <h3>Set PYTHONPATH</h3>
+          <pre><code># Linux / macOS
+export PYTHONPATH=$PYTHONPATH:/path/to/liboqs-python
+
+# Windows
+set PYTHONPATH=%PYTHONPATH%;C:\path\to\liboqs-python</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <section id="team" class="section">
+      <div class="container">
+        <h2>Authors</h2>
+        <div class="grid-2">
+          <div class="card">
+            <ul class="clean">
+              <li><strong>Krzysztof Madajczak</strong> — GUI, architecture, USB handling</li>
+              <li><strong>Julia Sadecka</strong> — Kyber, UML diagrams, documentation</li>
+            </ul>
+          </div>
+          <div class="card">
+            <ul class="clean">
+              <li><strong>Jakub Młocek</strong> — Falcon, Cross, benchmarks</li>
+              <li><strong>Marcel Trzaskawka</strong> — signatures, file headers, installation</li>
+            </ul>
+          </div>
+        </div>
+
+        <p class="footnote">
+          License: Educational project for academic and research purposes.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-row">
+      <span>© PQ-Crypto App</span>
+      <a href="#top" class="link">Back to top</a>
+    </div>
+  </footer>
+  <!-- Image Lightbox -->
+<div id="lightbox" class="lightbox hidden">
+  <span class="lightbox-close">&times;</span>
+  <img id="lightbox-img" src="" alt="Enlarged preview">
+</div>
+
+<script src="lightbox.js"></script>
+
+</body>
+</html>
