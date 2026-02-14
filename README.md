@@ -37,7 +37,7 @@ Supported Kyber variants:
 
 ### Digital Signatures
 - **Dilithium (ML-DSA)** – NIST-recommended primary PQ signature algorithm  
-- **Falcon** – compact signatures, higher implementation complexity  
+- **Falcon** – compact signatures, higher impleimgmentation complexity  
 - **SPHINCS++** – hash-based, stateless signature scheme  
 - **Cross** – experimental, non-standardized algorithm  
 
@@ -55,7 +55,7 @@ The application follows a layered architecture:
 The GUI handles all user interaction, while cryptographic operations are delegated
 to a separate logic module communicating with liboqs through a unified API.
 
-![System Architecture](img/p1.png)
+![System Architecture](docs/img/p1.png)
 
 ---
 
@@ -77,7 +77,7 @@ Generated files:
 Each key file contains a header specifying the algorithm, which allows automatic
 algorithm detection during later operations.
 
-![Key Generation](img/p2.png)
+![Key Generation](docs/img/p2.png)
 
 ---
 
@@ -99,7 +99,7 @@ The signature is appended to the file together with algorithm-specific headers:
 ==========End <Algorithm> Signature==========
 ```
 
-![Signing a Document](img/p3.png)
+![Signing a Document](docs/img/p3.png)
 
 ---
 
@@ -111,7 +111,7 @@ needs to provide:
 - the signed document,
 - the corresponding public key.
 
-![Signature Verification](img/p4.png)
+![Signature Verification](docs/img/p4.png)
 
 ---
 
@@ -127,7 +127,7 @@ Steps:
 2. Select recipient’s public key,
 3. Encrypt.
 
-![File Encryption](img/p5.png)
+![File Encryption](docs/img/p5.png)
 
 ### Decryption
 To decrypt a file:
@@ -136,7 +136,7 @@ To decrypt a file:
 3. Enter passphrase,
 4. Recover original content.
 
-![File Decryption](img/p6.png)
+![File Decryption](docs/img/p6.png)
 
 ---
 
@@ -151,7 +151,7 @@ Features:
 - navigation between multiple detected keys,
 - secure unlocking of private keys via passphrase.
 
-![USB Key Detection](img/p7.png)
+![USB Key Detection](docs/img/p7.png)
 
 ---
 
@@ -169,7 +169,7 @@ Results include:
 - average operation time,
 - throughput.
 
-![Benchmarks](img/p8.png)
+![Benchmarks](docs/img/p8.png)
 
 ---
 
