@@ -136,7 +136,7 @@ h3{
 }
 
 .section{
-  padding: 46px 0;
+  padding: 72px 0;
 }
 .section.alt{
   background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0));
@@ -291,4 +291,29 @@ ul{ margin: 10px 0 0 18px; color: var(--muted); }
 
 .hidden {
   display: none;
+}
+#documentation {
+  margin-top: 40px;
+  margin-bottom: 40px;
+}
+#documentation {
+  background: linear-gradient(
+    180deg,
+    rgba(255,255,255,.015),
+    rgba(255,255,255,0)
+  );
+}
+#documentation .card {
+  padding: 18px 18px;
+}
+.card {
+  display: flex;
+  flex-direction: column;
+}
+
+.card-actions {
+  margin-top: auto;        /* spycha przycisk na dół */
+  padding-top: 14px;
+  display: flex;
+  justify-content: flex-end;
 }
