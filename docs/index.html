@@ -180,28 +180,71 @@
       </div>
     </section>
 
-    <section id="installation" class="section alt">
-      <div class="container">
-        <h2>Installation (short)</h2>
-        <p class="subtitle">
-          This project uses <strong>liboqs</strong> via <strong>liboqs-python</strong>.
-        </p>
+<section id="installation" class="section alt">
+  <div class="container">
+    <h2>Source Code & Installation</h2>
+    <p class="subtitle">
+      The project is open-source and available on GitHub. Below are short instructions
+      for cloning the repository and installing required dependencies.
+    </p>
 
-        <div class="card">
-          <h3>Install liboqs-python</h3>
-          <pre><code>git clone --depth=1 https://github.com/open-quantum-safe/liboqs-python
+    <!-- GitHub repository -->
+    <div class="card">
+      <h3>Source Code</h3>
+      <p>
+        The complete source code of the application is hosted on GitHub.
+      </p>
+
+      <div class="card-actions">
+        <a class="btn primary"
+           href="https://github.com/krzysiek581234/post-quantum-cryptography"
+           target="_blank">
+          View Repository
+        </a>
+      </div>
+    </div>
+
+    <!-- Project setup -->
+    <div class="card">
+      <h3>Project Setup (recommended)</h3>
+      <p>
+        The recommended way to run the project locally is using Conda
+        and the provided <code>environment.yml</code> file.
+      </p>
+
+<pre><code>git clone https://github.com/krzysiek581234/post-quantum-cryptography.git
+cd post-quantum-cryptography
+conda env create -f environment.yml
+conda activate BSK
+python main.py
+</code></pre>
+    </div>
+
+    <!-- liboqs -->
+    <div class="card">
+      <h3>Post-Quantum Cryptography Backend (liboqs)</h3>
+      <p>
+        This project uses <strong>liboqs</strong> via the official
+        <strong>liboqs-python</strong> bindings.
+      </p>
+
+      <h4>Install liboqs-python</h4>
+<pre><code>git clone --depth=1 https://github.com/open-quantum-safe/liboqs-python
 cd liboqs-python
-pip install .</code></pre>
+pip install .
+</code></pre>
 
-          <h3>Set PYTHONPATH</h3>
-          <pre><code># Linux / macOS
+      <h4>Set PYTHONPATH</h4>
+<pre><code># Linux / macOS
 export PYTHONPATH=$PYTHONPATH:/path/to/liboqs-python
 
 # Windows
-set PYTHONPATH=%PYTHONPATH%;C:\path\to\liboqs-python</code></pre>
-        </div>
-      </div>
-    </section>
+set PYTHONPATH=%PYTHONPATH%;C:\path\to\liboqs-python
+</code></pre>
+    </div>
+  </div>
+</section>
+
 
     <section id="team" class="section">
       <div class="container">
